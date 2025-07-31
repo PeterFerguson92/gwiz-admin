@@ -1,0 +1,64 @@
+# .gitignore
+# Project files and directories
+/dansah/local_settings.py
+/dansah/static/
+/dansah/tmp/
+
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+
+# Text backup files
+*.bak
+
+
+# Translations
+*.pot
+
+# Django stuff:
+*.log
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target
+
+/myenv
+
+# Database
+*.sqlite3
+/*.sqlite3
+/db.sqlite3
+
+
+/static_cdn
+*.env
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
