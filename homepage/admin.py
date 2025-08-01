@@ -12,12 +12,10 @@ class BannerAdmin(admin.ModelAdmin):
         "subtitle_slide_1",
         "title_slide_2",
         "subtitle_slide_2",
+        "title_slide_3",
+        "subtitle_slide_3",
     )
     list_display = (
         "logo",
-        "title_slide_1",
-        "subtitle_slide_1",
-        "title_slide_2",
-        "subtitle_slide_2",
         "created_at",
     )

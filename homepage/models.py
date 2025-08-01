@@ -16,6 +16,8 @@ class Banner(models.Model):
     subtitle_slide_1 = models.TextField("Subtitle 1", blank=False, null=False)
     title_slide_2 = models.TextField("Title 2", blank=False, null=False)
     subtitle_slide_2 = models.TextField("Subtitle 2", blank=False, null=False)
+    title_slide_3 = models.TextField("Title 3", blank=False, null=False)
+    subtitle_slide_3 = models.TextField("Subtitle 3", blank=False, null=False)
     logo = ResizedImageField( "Logo",
         size=[133, 40],
         upload_to=homepage_logo_upload_image_path,
