@@ -8,17 +8,19 @@ class BannerAdmin(admin.ModelAdmin):
     search_fields = ("title_slide_1__startswith",)
     fields = (
         "logo",
-        'img_slide_1',
+        "img_slide_1",
         "title_slide_1",
         "subtitle_slide_1",
-        'img_slide_2',
+        "img_slide_2",
         "title_slide_2",
         "subtitle_slide_2",
-        'img_slide_3',
+        "img_slide_3",
         "title_slide_3",
         "subtitle_slide_3",
     )
     list_display = (
-        "logo",
+        "title_slide_1",
+        "title_slide_2",
+        "title_slide_3",
         "created_at",
     )
