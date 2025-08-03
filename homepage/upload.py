@@ -8,12 +8,12 @@ def get_filename_ext(filepath):
 
 def homepage_logo_upload_image_path(instance, filename):
     ext = get_filename_ext(filename)
-    return f"homepage/banner/logo{instance.id}{ext}"
+    return f"homepage/banner/{instance.id}/logo{ext}"
 
 
 def homepage_slide1_upload_image_path(instance, filename):
     ext = get_filename_ext(filename)
-    return f"homepage/banner/slide1{instance.id}{ext}"
+    return f"homepage/banner/{instance.id}/slide1{ext}"
 
 
 def homepage_slide2_upload_image_path(instance, filename):
