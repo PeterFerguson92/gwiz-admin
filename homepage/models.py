@@ -4,6 +4,7 @@ from django.contrib import admin
 from django_resized import ResizedImageField
 from django.db import models
 from storages.backends.s3boto3 import S3Boto3Storage
+
 s3_storage = S3Boto3Storage()
 
 
@@ -18,7 +19,6 @@ from homepage.upload import (
 # Register your models here.
 class Banner(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
     logo = ResizedImageField(
         "Logo",
         size=[133, 40],
@@ -73,3 +73,24 @@ class Banner(models.Model):
 
     def __str__(self):
         return f"{self.title_slide_1}"
+
+
+class Homepage(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField("Title", max_length=255, default="Homepage")
+    banner = models.ManyToManyField(to=Banner, blank=True)
+    created_at = models.DateTimeField("Created at", auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)
+        verbose_name = "Homepage"
+        verbose_name_plural = "Homepage"
+
+    def __unicode__(self):
+        return "%s: /n %s %s  %s %s" % (
+            self.id,
+            self.created_at,
+        )
+
+    def __str__(self):
+        return f"{self.id}"

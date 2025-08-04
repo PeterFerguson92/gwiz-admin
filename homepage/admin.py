@@ -1,7 +1,7 @@
 from django.utils.html import format_html
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from homepage.models import Banner
+from homepage.models import Banner, Homepage
 
 
 @admin.register(Banner)
@@ -16,7 +16,6 @@ class BannerAdmin(ModelAdmin):
     )
 
     readonly_fields = [
-   
         "created_at",
     ]
 
@@ -68,3 +67,19 @@ class BannerAdmin(ModelAdmin):
     unfold_fieldsets_in_tabs = True
 
 
+@admin.register(Homepage)
+class HomepageAdmin(ModelAdmin):
+    search_fields = ("title__startswith",)
+    filter_horizontal = ("banner",)
+    fields = (
+        "title",
+        "banner",
+    )
+    list_display = (
+        "title",
+        "created_at",
+    )
+    list_filter = (
+        "title",
+        "created_at",
+    )
