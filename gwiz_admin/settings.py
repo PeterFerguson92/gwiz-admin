@@ -23,6 +23,7 @@ if not IS_DEV:
 
 # Application definition
 INSTALLED_APPS = [
+    "unfold",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -133,3 +134,10 @@ DATE_FORMAT = "d-m-Y"
 DATE_INPUT_FORMATS = ["%d-%m-%Y"]
 X_FRAME_OPTIONS = "SAMEORIGIN"
 XS_SHARING_ALLOWED_METHODS = ["POST", "GET", "OPTIONS", "PUT", "DELETE"]
+
+
+UNFOLD = {
+    "SITE_TITLE": "Gwiz Admin",
+    "SITE_HEADER": "Gwiz Dashboard",
+    "THEME": "auto",  # light / dark / auto
+}
