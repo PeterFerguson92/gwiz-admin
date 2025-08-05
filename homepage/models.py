@@ -136,13 +136,18 @@ class AboutUs(models.Model):
         )
 
     def __str__(self):
-        return f"{self.id}"
+        return f"{self.title}"
 
 
 class Homepage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField("Title", max_length=255, default="Homepage")
-    banner = models.ManyToManyField(to=Banner, blank=True)
+    banner = models.OneToOneField(
+        Banner, on_delete=models.CASCADE, blank=True, null=True
+    )
+    about_us = models.OneToOneField(
+        AboutUs, on_delete=models.CASCADE, blank=True, null=True
+    )
     created_at = models.DateTimeField("Created at", auto_now_add=True)
 
     class Meta:

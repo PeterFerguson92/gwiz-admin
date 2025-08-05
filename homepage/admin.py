@@ -66,49 +66,57 @@ class BannerAdmin(ModelAdmin):
 
     unfold_fieldsets_in_tabs = True
 
+
 @admin.register(AboutUs)
 class AboutUsAdmin(ModelAdmin):
     list_display = ("title", "created_at")
     readonly_fields = ("created_at",)
 
     fieldsets = [
-        ("Main Info", {
-            "fields": (
-                "title",
-                "homepage_display_header",
-                "homepage_display_text",
-            )
-        }),
-        ("Highlights", {
-            "fields": (
-                "highlight_text1",
-                "highlight_text2",
-                "highlight_text3",
-                "about_us_homepage_image1",
-                "about_us_homepage_image2",
-            )
-        }),
-        ("Section", {
-            "fields": (
-                "section_display_header",
-                "section_display_text",
-                "about_us_section_image1",
-                "about_us_section_image2",
-            )
-        }),
-        ("Metadata", {
-            "fields": ("created_at",)
-        }),
+        (
+            "Main Info",
+            {
+                "fields": (
+                    "title",
+                    "homepage_display_header",
+                    "homepage_display_text",
+                )
+            },
+        ),
+        (
+            "Highlights",
+            {
+                "fields": (
+                    "highlight_text1",
+                    "highlight_text2",
+                    "highlight_text3",
+                    "about_us_homepage_image1",
+                    "about_us_homepage_image2",
+                )
+            },
+        ),
+        (
+            "Section",
+            {
+                "fields": (
+                    "section_display_header",
+                    "section_display_text",
+                    "about_us_section_image1",
+                    "about_us_section_image2",
+                )
+            },
+        ),
+        ("Metadata", {"fields": ("created_at",)}),
     ]
 
 
 @admin.register(Homepage)
 class HomepageAdmin(ModelAdmin):
     search_fields = ("title__startswith",)
-    filter_horizontal = ("banner",)
     fields = (
         "title",
         "banner",
+        "about_us",
     )
     list_display = (
         "title",

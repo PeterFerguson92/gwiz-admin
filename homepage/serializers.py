@@ -7,14 +7,17 @@ class BannerSerializer(serializers.ModelSerializer):
         model = Banner
         fields = "__all__"
 
+
 class AboutUsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AboutUs
         fields = "__all__"
-        
+
+
 class HomepageSerializer(serializers.ModelSerializer):
-    banner = BannerSerializer(many=True, read_only=True)
-    about_us = AboutUsSerializer(many=True, read_only=True)
+    banner = BannerSerializer(read_only=True)
+    about_us = AboutUsSerializer(read_only=True)
+
     class Meta:
         model = Homepage
-        fields = "__all__"     
+        fields = "__all__"
