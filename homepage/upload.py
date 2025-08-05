@@ -18,9 +18,9 @@ def homepage_slide1_upload_image_path(instance, filename):
 
 def homepage_slide2_upload_image_path(instance, filename):
     ext = get_filename_ext(filename)
-    return f"homepage/banner/slide2{instance.id}{ext}"
+    return f"homepage/banner/{instance.id}/slide2{ext}"
 
 
 def homepage_slide3_upload_image_path(instance, filename):
     ext = get_filename_ext(filename)
-    return f"homepage/banner/slide3{instance.id}{ext}"
+    return f"homepage/banner/{instance.id}/slide3{ext}"
