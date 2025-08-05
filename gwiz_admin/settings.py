@@ -33,10 +33,12 @@ INSTALLED_APPS = [
     "storages",
     "django_resized",
     "rest_framework",
+    "corsheaders",
     "homepage",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # ✅ WhiteNoise for static files
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -89,7 +91,9 @@ else:
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -134,6 +138,7 @@ DATE_FORMAT = "d-m-Y"
 DATE_INPUT_FORMATS = ["%d-%m-%Y"]
 X_FRAME_OPTIONS = "SAMEORIGIN"
 XS_SHARING_ALLOWED_METHODS = ["POST", "GET", "OPTIONS", "PUT", "DELETE"]
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
 
 
 UNFOLD = {
