@@ -82,7 +82,7 @@ class AboutUs(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField("Title", max_length=255, default="About Us")
     homepage_display_header = models.TextField("Homepage Display Header")
-    homepage_display_text = models.TextField("Homepage Display Title")
+    homepage_display_text = models.TextField("Homepage Display Text")
     highlight_text1 = models.TextField("Highlight 1", blank=True, null=True)
     highlight_text2 = models.TextField("Highlight 2", blank=True, null=True)
     highlight_text3 = models.TextField("Highlight 3", blank=True, null=True)
