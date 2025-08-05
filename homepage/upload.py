@@ -24,3 +24,22 @@ def homepage_slide2_upload_image_path(instance, filename):
 def homepage_slide3_upload_image_path(instance, filename):
     ext = get_filename_ext(filename)
     return f"homepage/banner/{instance.id}/slide3{ext}"
+
+# About us uploader.
+def about_us_homepage_upload_image1_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"homepage/aboutus/homepage/{instance.id}/img1{ext}"
+
+def about_us_homepage_upload_image2_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"homepage/aboutus/homepage/{instance.id}/img2{ext}"
+
+def about_us_section_upload_image1_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"homepage/aboutus/section{instance.id}/img1{ext}"
+
+def about_us_section_upload_image2_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"homepage/aboutus/section{instance.id}/img2{ext}"
+
+

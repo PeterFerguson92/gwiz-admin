@@ -11,4 +11,4 @@ class HomepageSerializer(serializers.ModelSerializer):
     banner = BannerSerializer(many=True, read_only=True)
     class Meta:
         model = Homepage
-        fields = "__all__"
+        fields = "__all__"     
