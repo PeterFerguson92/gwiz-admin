@@ -21,7 +21,6 @@ class Banner(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     logo = ResizedImageField(
         "Logo",
-        size=[133, 40],
         upload_to=homepage_logo_upload_image_path,
         quality=90,
         storage=s3_storage,  # ✅ force S3
