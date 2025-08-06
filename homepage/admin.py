@@ -203,6 +203,8 @@ class HomepageAdmin(ModelAdmin):
             "fields": (
                 "banner",
                 "about_us",
+                "service_title",
+                "service_description",
                 "services",
             )
         }),

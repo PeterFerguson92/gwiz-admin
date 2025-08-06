@@ -260,6 +260,8 @@ class Homepage(models.Model):
     about_us = models.OneToOneField(
         AboutUs, on_delete=models.CASCADE, blank=True, null=True
     )
+    service_title = models.CharField("Service Title", max_length=255, default="Our Services")
+    service_description = models.TextField("Service Description", blank=True, null=True)
     services = models.ManyToManyField(to=Service, blank=True)
     created_at = models.DateTimeField("Created at", auto_now_add=True)
 
