@@ -157,7 +157,7 @@ class TeamAdmin(ModelAdmin):
     readonly_fields = ("created_at",)
 
     fieldsets = [
-        ("Team Info", {"fields": ("title",)}),
+        ("Team Info", {"fields": ("title","header","description")}),
         ("Trainers", {"fields": ("trainers",)}),
         ("Metadata", {"fields": ("created_at",)}),
     ]
