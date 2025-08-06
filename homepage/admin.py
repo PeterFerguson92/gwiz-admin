@@ -122,7 +122,7 @@ class AboutUsAdmin(ModelAdmin):
 
 @admin.register(Trainer)
 class TrainerAdmin(ModelAdmin):
-    list_display = ("title", "role", "instagram_link", "created_at")
+    list_display = ("name", "role", "instagram_link", "created_at")
     readonly_fields = (
         "created_at",
     )  # Add "profile_image_preview" if preview is enabled
@@ -132,7 +132,7 @@ class TrainerAdmin(ModelAdmin):
             "Basic Info",
             {
                 "fields": (
-                    "title",
+                    "name",
                     "role",
                     "instagram_link",
                 )

@@ -88,7 +88,7 @@ class Trainer(models.Model):
         storage=s3_storage,
     )
 
-    title = models.CharField("Name", max_length=255)
+    name = models.CharField("Name", max_length=255)
     role = models.CharField("Role", max_length=255)
     instagram_link = models.CharField(
         "Instagram Link", max_length=255, blank=True, null=True
