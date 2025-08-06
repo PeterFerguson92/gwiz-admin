@@ -18,6 +18,7 @@ from homepage.upload import (
     homepage_slide1_upload_image_path,
     homepage_slide2_upload_image_path,
     homepage_slide3_upload_image_path,
+    service_cover_upload_image_path,
     team_trainer_profile_upload_image_path,
 )
 
@@ -220,6 +221,35 @@ class AboutUs(models.Model):
 
     def __str__(self):
         return f"{self.title}"
+    
+class Service(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    cover_image = ResizedImageField(
+        "Cover Image",
+        upload_to=service_cover_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
+    name = models.CharField("name", max_length=255)
+    short_description = models.TextField("Short Description")
+    long_description = models.TextField("Long Description", blank=True, null=True)
+    created_at = models.DateTimeField("Created at", auto_now_add=True)
+
+    class Meta:
+        ordering = ("name", "created_at")
+        verbose_name = "Service"
+        verbose_name_plural = "Services"
+        
+    def __unicode__(self):
+        return "%s: /n %s %s  %s %s" % (
+            self.id,
+            self.created_at,
+        )
+
+    def __str__(self):
+        return f"{self.name}"
+
 
 class Homepage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -230,6 +260,7 @@ class Homepage(models.Model):
     about_us = models.OneToOneField(
         AboutUs, on_delete=models.CASCADE, blank=True, null=True
     )
+    services = models.ManyToManyField(to=Service, blank=True)
     created_at = models.DateTimeField("Created at", auto_now_add=True)
 
     class Meta:

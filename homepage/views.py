@@ -2,8 +2,8 @@ from django.shortcuts import render
 from rest_framework import status, generics
 from rest_framework.response import Response
 
-from homepage.models import Banner, AboutUs, Homepage, Team, Trainer
-from homepage.serializers import BannerSerializer, AboutUsSerializer, HomepageSerializer, TeamSerializer, TrainerSerializer
+from homepage.models import Banner, AboutUs, Homepage, Service, Team, Trainer
+from homepage.serializers import BannerSerializer, AboutUsSerializer, HomepageSerializer, ServiceSerializer, TeamSerializer, TrainerSerializer
 
 
 # BANNER VIEWS.
@@ -135,6 +135,39 @@ class TeamDetailView(generics.GenericAPIView):
         if object is None:
             return Response(
                 {"status": "fail", "message": f"Team with Id: {pk} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = self.serializer_class(object)
+        return Response({"status": "success", "result": serializer.data})  
+    
+
+class ServiceListView(generics.GenericAPIView):
+    serializer_class = ServiceSerializer
+
+    def get(self, request):
+        objects = Service.objects.all()
+        if not objects:
+            return Response(
+                {"status": "No data available"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = self.serializer_class(objects, many=True)
+        return Response({"status": "success", "result": serializer.data})
+
+class ServiceDetailView(generics.GenericAPIView):
+    serializer_class = ServiceSerializer
+
+    def get_object(self, pk):
+        try:
+            return Service.objects.get(pk=pk)
+        except:
+            return None
+
+    def get(self, request, pk):
+        object = self.get_object(pk=pk)
+        if object is None:
+            return Response(
+                {"status": "fail", "message": f"Service with Id: {pk} not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
         serializer = self.serializer_class(object)

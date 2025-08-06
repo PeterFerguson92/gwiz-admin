@@ -51,3 +51,7 @@ def team_trainer_profile_upload_image_path(instance, filename):
     ext = get_filename_ext(filename)
     return f"homepage/team/trainers/profile/{instance.id}/img{ext}"
 
+# Trainer/Team.
+def service_cover_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"service/{instance.id}/img{ext}"

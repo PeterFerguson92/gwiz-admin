@@ -1,7 +1,7 @@
 from django.utils.html import format_html
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from homepage.models import AboutUs, Banner, Homepage, Team, Trainer
+from homepage.models import AboutUs, Banner, Homepage, Service, Team, Trainer
 
 
 @admin.register(Banner)
@@ -155,9 +155,10 @@ class TrainerAdmin(ModelAdmin):
 class TeamAdmin(ModelAdmin):
     list_display = ("title", "created_at")
     readonly_fields = ("created_at",)
+    filter_horizontal = ("trainers",)  # 👈 enhances M2M selection
 
     fieldsets = [
-        ("Team Info", {"fields": ("title","header","description")}),
+        ("Team Info", {"fields": ("title", "header", "description")}),
         ("Trainers", {"fields": ("trainers",)}),
         ("Metadata", {"fields": ("created_at",)}),
     ]
@@ -177,15 +178,48 @@ class TeamAdmin(ModelAdmin):
         return super().changelist_view(request, extra_context)
 
 
+@admin.register(Service)
+class ServiceAdmin(ModelAdmin):
+    list_display = ("name", "created_at")
+    readonly_fields = ("created_at",)
+
+    fieldsets = [
+        ("Service Info", {"fields": ("name", "short_description", "long_description")}),
+        ("Media", {"fields": ("cover_image",)}),
+        ("Metadata", {"fields": ("created_at",)}),
+    ]
+
 @admin.register(Homepage)
 class HomepageAdmin(ModelAdmin):
-    search_fields = ("title__startswith",)
-    fields = ("title", "banner", "about_us")
-    list_display = (
-        "title",
-        "created_at",
-    )
-    list_filter = (
-        "title",
-        "created_at",
-    )
+    list_display = ("title", "created_at")
+    readonly_fields = ("created_at",)
+    filter_horizontal = ("services",)  # 👈 enhances M2M selection
+
+    fieldsets = [
+        ("Main Settings", {
+            "fields": ("title",)
+        }),
+        ("Content Blocks", {
+            "fields": (
+                "banner",
+                "about_us",
+                "services",
+            )
+        }),
+        ("Metadata", {
+            "fields": ("created_at",)
+        }),
+    ]
+
+    def has_add_permission(self, request):
+        return not Homepage.objects.exists()
+
+    def changelist_view(self, request, extra_context=None):
+        from django.shortcuts import redirect
+        instance = Homepage.objects.first()
+        if instance:
+            return redirect(
+                f"/admin/{self.model._meta.app_label}/{self.model._meta.model_name}/{instance.id}/change/"
+            )
+        return super().changelist_view(request, extra_context)
+
