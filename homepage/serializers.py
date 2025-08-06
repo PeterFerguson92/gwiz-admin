@@ -1,4 +1,4 @@
-from homepage.models import AboutUs, Banner, Homepage
+from homepage.models import AboutUs, Banner, Homepage, Team, Trainer
 from rest_framework import serializers
 
 
@@ -7,13 +7,24 @@ class BannerSerializer(serializers.ModelSerializer):
         model = Banner
         fields = "__all__"
 
+        
+class TrainerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Trainer
+        fields = "__all__"
+
+class TeamSerializer(serializers.ModelSerializer):
+    trainers = TrainerSerializer(read_only=True, many=True)
+    class Meta:
+        model = Team
+        fields = "__all__"
 
 class AboutUsSerializer(serializers.ModelSerializer):
+    team = TeamSerializer(read_only=True)
+
     class Meta:
         model = AboutUs
         fields = "__all__"
-
-
 class HomepageSerializer(serializers.ModelSerializer):
     banner = BannerSerializer(read_only=True)
     about_us = AboutUsSerializer(read_only=True)

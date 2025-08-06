@@ -73,17 +73,9 @@ class AboutUsAdmin(ModelAdmin):
     readonly_fields = ("created_at",)
 
     fieldsets = [
+        ("General", {"fields": ("title", "cover_image", "team")}),
         (
-            "Basic Info",
-            {
-                "fields": (
-                    "title",
-                    "cover_image",
-                )
-            },
-        ),
-        (
-            "Homepage Content",
+            "Homepage Display",
             {
                 "fields": (
                     "homepage_display_header",
@@ -112,6 +104,20 @@ class AboutUsAdmin(ModelAdmin):
         ),
         ("Metadata", {"fields": ("created_at",)}),
     ]
+
+    # Enforce singleton behavior in admin
+    def has_add_permission(self, request):
+        return not AboutUs.objects.exists()
+
+    def changelist_view(self, request, extra_context=None):
+        from django.shortcuts import redirect
+
+        instance = AboutUs.objects.first()
+        if instance:
+            return redirect(
+                f"/admin/{self.model._meta.app_label}/{self.model._meta.model_name}/{instance.id}/change/"
+            )
+        return super().changelist_view(request, extra_context)
 
 
 @admin.register(Trainer)
@@ -174,12 +180,7 @@ class TeamAdmin(ModelAdmin):
 @admin.register(Homepage)
 class HomepageAdmin(ModelAdmin):
     search_fields = ("title__startswith",)
-    fields = (
-        "title",
-        "banner",
-        "about_us",
-        "team"
-    )
+    fields = ("title", "banner", "about_us")
     list_display = (
         "title",
         "created_at",

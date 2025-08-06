@@ -2,8 +2,8 @@ from django.shortcuts import render
 from rest_framework import status, generics
 from rest_framework.response import Response
 
-from homepage.models import Banner, AboutUs, Homepage
-from homepage.serializers import BannerSerializer, AboutUsSerializer, HomepageSerializer
+from homepage.models import Banner, AboutUs, Homepage, Team, Trainer
+from homepage.serializers import BannerSerializer, AboutUsSerializer, HomepageSerializer, TeamSerializer, TrainerSerializer
 
 
 # BANNER VIEWS.
@@ -74,7 +74,72 @@ class AboutUsDetailView(generics.GenericAPIView):
         serializer = self.serializer_class(object)
         return Response({"status": "success", "result": serializer.data})    
 
+# TRAINER VIEWS.
+class TrainerListView(generics.GenericAPIView):
+    serializer_class = TrainerSerializer
 
+    def get(self, request):
+        objects = Trainer.objects.all()
+        if not objects:
+            return Response(
+                {"status": "No data available"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = self.serializer_class(objects, many=True)
+        return Response({"status": "success", "result": serializer.data})
+
+class TrainerDetailView(generics.GenericAPIView):
+    serializer_class = TrainerSerializer
+
+    def get_object(self, pk):
+        try:
+            return Trainer.objects.get(pk=pk)
+        except:
+            return None
+
+    def get(self, request, pk):
+        object = self.get_object(pk=pk)
+        if object is None:
+            return Response(
+                {"status": "fail", "message": f"Trainer with Id: {pk} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = self.serializer_class(object)
+        return Response({"status": "success", "result": serializer.data})    
+
+# TEAM VIEWS.
+class TeamListView(generics.GenericAPIView):
+    serializer_class = TeamSerializer
+
+    def get(self, request):
+        objects = Team.objects.all()
+        if not objects:
+            return Response(
+                {"status": "No data available"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = self.serializer_class(objects, many=True)
+        return Response({"status": "success", "result": serializer.data})
+
+class TeamDetailView(generics.GenericAPIView):
+    serializer_class = TeamSerializer
+
+    def get_object(self, pk):
+        try:
+            return Team.objects.get(pk=pk)
+        except:
+            return None
+
+    def get(self, request, pk):
+        object = self.get_object(pk=pk)
+        if object is None:
+            return Response(
+                {"status": "fail", "message": f"Team with Id: {pk} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = self.serializer_class(object)
+        return Response({"status": "success", "result": serializer.data})  
+    
 # HOMEPAGE VIEWS.
 class HomepageListView(generics.GenericAPIView):
     serializer_class = HomepageSerializer

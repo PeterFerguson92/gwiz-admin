@@ -78,6 +78,61 @@ class Banner(models.Model):
 
     def __str__(self):
         return f"{self.title_slide_1}"
+class Trainer(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    profile_image = ResizedImageField(
+        "Profile Image",
+        upload_to=team_trainer_profile_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
+
+    title = models.CharField("Name", max_length=255)
+    role = models.CharField("Role", max_length=255)
+    instagram_link = models.CharField(
+        "Instagram Link", max_length=255, blank=True, null=True
+    )
+    created_at = models.DateTimeField("Created at", auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)
+        verbose_name = "Trainer"
+        verbose_name_plural = "Trainers"
+
+    def __str__(self):
+        return self.title
+
+
+class Team(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField("Title", max_length=255, default="Team")
+    trainers = models.ManyToManyField(to=Trainer, blank=True)
+    created_at = models.DateTimeField("Created at", auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)
+        verbose_name = "Team"
+        verbose_name_plural = "Team"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and AboutUs.objects.exists():
+            raise ValueError("Only one Team instance is allowed.")
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+    def __unicode__(self):
+        return "%s: /n %s %s  %s %s" % (
+            self.id,
+            self.created_at,
+        )
+
+    def __str__(self):
+        return f"{self.title}"
+
 
 
 class AboutUs(models.Model):
@@ -140,6 +195,7 @@ class AboutUs(models.Model):
         blank=True,
         storage=s3_storage,
     )
+    team = models.OneToOneField(Team, on_delete=models.CASCADE, blank=True, null=True)
     created_at = models.DateTimeField("Created at", auto_now_add=True)
 
     class Meta:
@@ -164,63 +220,6 @@ class AboutUs(models.Model):
     def __str__(self):
         return f"{self.title}"
 
-
-class Trainer(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    profile_image = ResizedImageField(
-        "Profile Image",
-        upload_to=team_trainer_profile_upload_image_path,
-        null=True,
-        blank=True,
-        storage=s3_storage,
-    )
-
-    title = models.CharField("Name", max_length=255)
-    role = models.CharField("Role", max_length=255)
-    instagram_link = models.CharField(
-        "Instagram Link", max_length=255, blank=True, null=True
-    )
-    created_at = models.DateTimeField("Created at", auto_now_add=True)
-
-    class Meta:
-        ordering = ("created_at",)
-        verbose_name = "Trainer"
-        verbose_name_plural = "Trainers"
-
-    def __str__(self):
-        return self.title
-
-
-class Team(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    title = models.CharField("Title", max_length=255, default="Team")
-    trainers = models.ManyToManyField(to=Trainer, blank=True)
-    created_at = models.DateTimeField("Created at", auto_now_add=True)
-
-    class Meta:
-        ordering = ("created_at",)
-        verbose_name = "Team"
-        verbose_name_plural = "Team"
-
-    def save(self, *args, **kwargs):
-        if not self.pk and AboutUs.objects.exists():
-            raise ValueError("Only one Team instance is allowed.")
-        return super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.title
-
-    def __unicode__(self):
-        return "%s: /n %s %s  %s %s" % (
-            self.id,
-            self.created_at,
-        )
-
-    def __str__(self):
-        return f"{self.title}"
-
-
 class Homepage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField("Title", max_length=255, default="Homepage")
@@ -230,7 +229,6 @@ class Homepage(models.Model):
     about_us = models.OneToOneField(
         AboutUs, on_delete=models.CASCADE, blank=True, null=True
     )
-    team = models.OneToOneField(Team, on_delete=models.CASCADE, blank=True, null=True)
     created_at = models.DateTimeField("Created at", auto_now_add=True)
 
     class Meta:

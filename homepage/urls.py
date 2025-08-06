@@ -1,6 +1,6 @@
 from django.urls import path
 
-from homepage.views import AboutUsDetailView, AboutUsListView, BannerDetailView, BannerListView, HomepageDetailView, HomepageListView
+from homepage.views import AboutUsDetailView, AboutUsListView, BannerDetailView, BannerListView, HomepageDetailView, HomepageListView, TeamDetailView, TeamListView, TrainerDetailView, TrainerListView
 
 
 
@@ -14,4 +14,11 @@ urlpatterns = [
     
     path("about-us", AboutUsListView.as_view()),
     path("about-us/detail/<uuid:pk>", AboutUsDetailView.as_view()),
+    
+    path("trainer", TrainerListView.as_view()),
+    path("trainer/detail/<uuid:pk>", TrainerDetailView.as_view()),
+    
+    path("team", TeamListView.as_view()),
+    path("team/detail/<uuid:pk>", TeamDetailView.as_view()),
+    
 ]
