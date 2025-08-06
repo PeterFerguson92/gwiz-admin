@@ -46,4 +46,8 @@ def about_us_section_upload_image2_path(instance, filename):
     ext = get_filename_ext(filename)
     return f"homepage/aboutus/section{instance.id}/img2{ext}"
 
+# Trainer/Team.
+def team_trainer_profile_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"homepage/team/trainers/profile/{instance.id}/img{ext}"
 

@@ -1,7 +1,7 @@
 from django.utils.html import format_html
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from homepage.models import AboutUs, Banner, Homepage
+from homepage.models import AboutUs, Banner, Homepage, Team, Trainer
 
 
 @admin.register(Banner)
@@ -73,35 +73,102 @@ class AboutUsAdmin(ModelAdmin):
     readonly_fields = ("created_at",)
 
     fieldsets = [
-        ("Basic Info", {
-            "fields": ("title", "cover_image",)
-        }),
-        ("Homepage Content", {
-            "fields": (
-                "homepage_display_header",
-                "homepage_display_text",
-                "highlight_text1",
-                "highlight_text2",
-                "highlight_text3",
-                "about_us_homepage_image1",
-                "about_us_homepage_image2",
-            )
-        }),
-        ("Section Content", {
-            "fields": (
-                "section_display_header",
-                "section_display_text",
-                "section_highlight_text1",
-                "section_highlight_text2",
-                "section_highlight_text3",
-                "about_us_section_image1",
-                "about_us_section_image2",
-            )
-        }),
-        ("Metadata", {
-            "fields": ("created_at",)
-        }),
+        (
+            "Basic Info",
+            {
+                "fields": (
+                    "title",
+                    "cover_image",
+                )
+            },
+        ),
+        (
+            "Homepage Content",
+            {
+                "fields": (
+                    "homepage_display_header",
+                    "homepage_display_text",
+                    "highlight_text1",
+                    "highlight_text2",
+                    "highlight_text3",
+                    "about_us_homepage_image1",
+                    "about_us_homepage_image2",
+                )
+            },
+        ),
+        (
+            "Section Content",
+            {
+                "fields": (
+                    "section_display_header",
+                    "section_display_text",
+                    "section_highlight_text1",
+                    "section_highlight_text2",
+                    "section_highlight_text3",
+                    "about_us_section_image1",
+                    "about_us_section_image2",
+                )
+            },
+        ),
+        ("Metadata", {"fields": ("created_at",)}),
     ]
+
+
+@admin.register(Trainer)
+class TrainerAdmin(ModelAdmin):
+    list_display = ("title", "role", "instagram_link", "created_at")
+    readonly_fields = (
+        "created_at",
+    )  # Add "profile_image_preview" if preview is enabled
+
+    fieldsets = [
+        (
+            "Basic Info",
+            {
+                "fields": (
+                    "title",
+                    "role",
+                    "instagram_link",
+                )
+            },
+        ),
+        (
+            "Media",
+            {
+                "fields": (
+                    "profile_image",
+                    # "profile_image_preview",  # optional — see below
+                )
+            },
+        ),
+        ("Metadata", {"fields": ("created_at",)}),
+    ]
+
+
+@admin.register(Team)
+class TeamAdmin(ModelAdmin):
+    list_display = ("title", "created_at")
+    readonly_fields = ("created_at",)
+
+    fieldsets = [
+        ("Team Info", {"fields": ("title",)}),
+        ("Trainers", {"fields": ("trainers",)}),
+        ("Metadata", {"fields": ("created_at",)}),
+    ]
+
+    # ✅ Singleton enforcement
+    def has_add_permission(self, request):
+        return not Team.objects.exists()
+
+    def changelist_view(self, request, extra_context=None):
+        from django.shortcuts import redirect
+
+        team = Team.objects.first()
+        if team:
+            return redirect(
+                f"/admin/{self.model._meta.app_label}/{self.model._meta.model_name}/{team.id}/change/"
+            )
+        return super().changelist_view(request, extra_context)
 
 
 @admin.register(Homepage)
@@ -111,6 +178,7 @@ class HomepageAdmin(ModelAdmin):
         "title",
         "banner",
         "about_us",
+        "team"
     )
     list_display = (
         "title",
