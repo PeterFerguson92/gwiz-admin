@@ -80,7 +80,6 @@ class Banner(models.Model):
         return f"{self.title_slide_1}"
 class Trainer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
     profile_image = ResizedImageField(
         "Profile Image",
         upload_to=team_trainer_profile_upload_image_path,
@@ -108,6 +107,8 @@ class Trainer(models.Model):
 class Team(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField("Title", max_length=255, default="Team")
+    header = models.CharField("Header", max_length=255, default="Meet our Trainers")
+    description = models.TextField("Description", blank=True, null=True)
     trainers = models.ManyToManyField(to=Trainer, blank=True)
     created_at = models.DateTimeField("Created at", auto_now_add=True)
 
