@@ -26,6 +26,10 @@ def homepage_slide3_upload_image_path(instance, filename):
     return f"homepage/banner/{instance.id}/slide3{ext}"
 
 # About us uploader.
+def about_us_cover_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"homepage/aboutus/cover/{instance.id}/img{ext}"
+
 def about_us_homepage_upload_image1_path(instance, filename):
     ext = get_filename_ext(filename)
     return f"homepage/aboutus/homepage/{instance.id}/img1{ext}"

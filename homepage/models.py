@@ -9,6 +9,7 @@ s3_storage = S3Boto3Storage()
 
 
 from homepage.upload import (
+    about_us_cover_upload_image_path,
     about_us_homepage_upload_image1_path,
     about_us_homepage_upload_image2_path,
     about_us_section_upload_image1_path,
@@ -81,6 +82,13 @@ class Banner(models.Model):
 class AboutUs(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField("Title", max_length=255, default="About Us")
+    cover_image = ResizedImageField(
+        "Cover Image",
+        upload_to=about_us_cover_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
     homepage_display_header = models.TextField("Homepage Display Header")
     homepage_display_text = models.TextField("Homepage Display Text")
     highlight_text1 = models.TextField("Highlight 1", blank=True, null=True)
@@ -107,6 +115,15 @@ class AboutUs(models.Model):
     section_display_text = models.TextField(
         "Section Display Text", blank=True, null=True
     )
+    section_highlight_text1 = models.TextField(
+        "Section Highlight 1", blank=True, null=True
+    )
+    section_highlight_text2 = models.TextField(
+        "Section Highlight 2", blank=True, null=True
+    )
+    section_highlight_text3 = models.TextField(
+        "Section Highlight 3", blank=True, null=True
+    )
     about_us_section_image1 = ResizedImageField(
         "About Us Section Image 1",
         upload_to=about_us_section_upload_image1_path,
@@ -128,6 +145,14 @@ class AboutUs(models.Model):
         ordering = ("created_at",)
         verbose_name = "About Us"
         verbose_name_plural = "About Us"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and AboutUs.objects.exists():
+            raise ValueError("Only one AboutUs instance is allowed.")
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
 
     def __unicode__(self):
         return "%s: /n %s %s  %s %s" % (

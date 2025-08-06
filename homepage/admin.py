@@ -73,40 +73,34 @@ class AboutUsAdmin(ModelAdmin):
     readonly_fields = ("created_at",)
 
     fieldsets = [
-        (
-            "Main Info",
-            {
-                "fields": (
-                    "title",
-                    "homepage_display_header",
-                    "homepage_display_text",
-                )
-            },
-        ),
-        (
-            "Highlights",
-            {
-                "fields": (
-                    "highlight_text1",
-                    "highlight_text2",
-                    "highlight_text3",
-                    "about_us_homepage_image1",
-                    "about_us_homepage_image2",
-                )
-            },
-        ),
-        (
-            "Section",
-            {
-                "fields": (
-                    "section_display_header",
-                    "section_display_text",
-                    "about_us_section_image1",
-                    "about_us_section_image2",
-                )
-            },
-        ),
-        ("Metadata", {"fields": ("created_at",)}),
+        ("Basic Info", {
+            "fields": ("title", "cover_image",)
+        }),
+        ("Homepage Content", {
+            "fields": (
+                "homepage_display_header",
+                "homepage_display_text",
+                "highlight_text1",
+                "highlight_text2",
+                "highlight_text3",
+                "about_us_homepage_image1",
+                "about_us_homepage_image2",
+            )
+        }),
+        ("Section Content", {
+            "fields": (
+                "section_display_header",
+                "section_display_text",
+                "section_highlight_text1",
+                "section_highlight_text2",
+                "section_highlight_text3",
+                "about_us_section_image1",
+                "about_us_section_image2",
+            )
+        }),
+        ("Metadata", {
+            "fields": ("created_at",)
+        }),
     ]
 
 
