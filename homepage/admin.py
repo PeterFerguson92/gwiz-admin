@@ -1,7 +1,7 @@
 from django.utils.html import format_html
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from homepage.models import AboutUs, Banner, Homepage, Service, Team, Trainer
+from homepage.models import AboutUs, Banner, Faq, Homepage, Service, Team, Trainer
 
 
 @admin.register(Banner)
@@ -188,12 +188,19 @@ class ServiceAdmin(ModelAdmin):
         ("Media", {"fields": ("cover_image",)}),
         ("Metadata", {"fields": ("created_at",)}),
     ]
+    
+@admin.register(Faq)
+class FaqAdmin(ModelAdmin):
+    list_display = ("question", "created_at")
+    search_fields = ("question", "answer")
+    list_filter = ("created_at",)
+    ordering = ("question", "created_at")
 
 @admin.register(Homepage)
 class HomepageAdmin(ModelAdmin):
     list_display = ("title", "created_at")
     readonly_fields = ("created_at",)
-    filter_horizontal = ("services",)  # 👈 enhances M2M selection
+    filter_horizontal = ("services", "faqs")  # 👈 enhances M2M selection
 
     fieldsets = [
         ("Main Settings", {
@@ -206,6 +213,7 @@ class HomepageAdmin(ModelAdmin):
                 "service_title",
                 "service_description",
                 "services",
+                "faqs"
             )
         }),
         ("Metadata", {

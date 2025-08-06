@@ -249,6 +249,27 @@ class Service(models.Model):
 
     def __str__(self):
         return f"{self.name}"
+    
+    
+class Faq(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    question = models.TextField("Question")
+    answer = models.TextField("Answer")
+    created_at = models.DateTimeField("Created at", auto_now_add=True)
+
+    class Meta:
+        ordering = ("question", "created_at")
+        verbose_name = "FAQ"
+        verbose_name_plural = "FAQ's"
+        
+    def __unicode__(self):
+        return "%s: /n %s %s  %s %s" % (
+            self.id,
+            self.created_at,
+        )
+
+    def __str__(self):
+        return f"{self.question}"
 
 
 class Homepage(models.Model):
@@ -262,6 +283,9 @@ class Homepage(models.Model):
     )
     service_title = models.CharField("Service Title", max_length=255, default="Our Services")
     service_description = models.TextField("Service Description", blank=True, null=True)
+    faq_title = models.CharField("FAQ Title", max_length=255, default="Our Services")
+    faq_description = models.TextField("FAQ Description", blank=True, null=True)
+    faqs = models.ManyToManyField(to=Faq, blank=True)
     services = models.ManyToManyField(to=Service, blank=True)
     created_at = models.DateTimeField("Created at", auto_now_add=True)
 
