@@ -101,7 +101,7 @@ class Trainer(models.Model):
         verbose_name_plural = "Trainers"
 
     def __str__(self):
-        return self.title
+        return self.name
 
 
 class Team(models.Model):
