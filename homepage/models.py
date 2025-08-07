@@ -15,6 +15,7 @@ from homepage.upload import (
     about_us_section_upload_image1_path,
     about_us_section_upload_image2_path,
     contact_background_upload_image_path,
+    footer_logo_upload_image_path,
     homepage_logo_upload_image_path,
     homepage_slide1_upload_image_path,
     homepage_slide2_upload_image_path,
@@ -313,6 +314,44 @@ class Contact(models.Model):
         return f"{self.header}"
 
 
+class Footer(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    logo = ResizedImageField(
+        "logo",
+        upload_to=footer_logo_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
+    slogan = models.TextField("Slogan", blank=True, null=True)
+    contact = models.OneToOneField(
+        Contact, on_delete=models.CASCADE, blank=True, null=True
+    )
+    services = models.ManyToManyField(to=Service, blank=True)
+    instagram_link = models.CharField("Instagram Link", max_length=255)
+    tiktok_link = models.CharField("Tik Tok Link", max_length=255)
+    created_at = models.DateTimeField("Created at", auto_now_add=True)
+
+    class Meta:
+        ordering = ("id", "created_at")
+        verbose_name = "Footer"
+        verbose_name_plural = "Footers"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and AboutUs.objects.exists():
+            raise ValueError("Only one instance is allowed.")
+        return super().save(*args, **kwargs)
+
+    def __unicode__(self):
+        return "%s: /n %s %s  %s %s" % (
+            self.id,
+            self.created_at,
+        )
+
+    def __str__(self):
+        return f"{self.id}"
+
+
 class Homepage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField("Title", max_length=255, default="Homepage")
@@ -322,6 +361,8 @@ class Homepage(models.Model):
     about_us = models.OneToOneField(
         AboutUs, on_delete=models.CASCADE, blank=True, null=True
     )
+    services = models.ManyToManyField(to=Service, blank=True)
+
     service_title = models.CharField(
         "Service Title", max_length=255, default="Our Services"
     )

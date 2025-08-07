@@ -60,3 +60,8 @@ def service_cover_upload_image_path(instance, filename):
 def contact_background_upload_image_path(instance, filename):
     ext = get_filename_ext(filename)
     return f"contact/{instance.id}/img{ext}"
+
+# footer.
+def footer_logo_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"footer/{instance.id}/img{ext}"

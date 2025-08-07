@@ -1,6 +1,6 @@
 from django.urls import path
 
-from homepage.views import AboutUsDetailView, AboutUsListView, BannerDetailView, BannerListView, ContactDetailView, ContactListView, HomepageDetailView, HomepageListView, ServiceDetailView, ServiceListView, TeamDetailView, TeamListView, TrainerDetailView, TrainerListView
+from homepage.views import AboutUsDetailView, AboutUsListView, BannerDetailView, BannerListView, ContactDetailView, ContactListView, FooterDetailView, FooterListView, HomepageDetailView, HomepageListView, ServiceDetailView, ServiceListView, TeamDetailView, TeamListView, TrainerDetailView, TrainerListView
 
 
 
@@ -26,5 +26,8 @@ urlpatterns = [
     
     path("contact", ContactListView.as_view()),
     path("contact/detail/<uuid:pk>", ContactDetailView.as_view()),
+    
+    path("footer", FooterListView.as_view()),
+    path("footer/detail/<uuid:pk>", FooterDetailView.as_view()),
     
 ]

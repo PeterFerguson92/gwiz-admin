@@ -1,4 +1,4 @@
-from homepage.models import AboutUs, Banner, Contact, Faq, Homepage, Service, Team, Trainer
+from homepage.models import AboutUs, Banner, Contact, Faq, Footer, Homepage, Service, Team, Trainer
 from rest_framework import serializers
 
 
@@ -39,7 +39,15 @@ class FaqSerializer(serializers.ModelSerializer):
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
-        fields = "__all__"     
+        fields = "__all__"    
+
+class FooterSerializer(serializers.ModelSerializer):
+    contact = ContactSerializer(read_only=True)
+    services = ServiceSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Footer
+        fields = "__all__"  
         
 class HomepageSerializer(serializers.ModelSerializer):
     banner = BannerSerializer(read_only=True)

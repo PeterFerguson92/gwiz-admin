@@ -1,8 +1,7 @@
 from django.utils.html import format_html
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from homepage.models import AboutUs, Banner, Contact, Faq, Homepage, Service, Team, Trainer
-
+from homepage.models import AboutUs, Banner, Contact, Faq, Footer, Homepage, Service, Team, Trainer
 
 @admin.register(Banner)
 class BannerAdmin(ModelAdmin):
@@ -195,10 +194,6 @@ class FaqAdmin(ModelAdmin):
     search_fields = ("question", "answer")
     list_filter = ("created_at",)
     ordering = ("question", "created_at")
-    
-from django.contrib import admin
-from unfold.admin import ModelAdmin
-from .models import Contact
 
 
 @admin.register(Contact)
@@ -232,6 +227,31 @@ class ContactAdmin(ModelAdmin):
             "fields": ("created_at",)
         }),
     )
+    
+@admin.register(Footer)
+class FooterAdmin(ModelAdmin):
+    list_display = ("slogan", "instagram_link", "tiktok_link", "created_at")
+    search_fields = ("slogan", "instagram_link", "tiktok_link")
+    list_filter = ("created_at",)
+    ordering = ("created_at",)
+    filter_horizontal = ("services",)
+    readonly_fields = ("created_at",)
+
+    fieldsets = (
+        ("Branding", {
+            "fields": ("logo", "slogan")
+        }),
+        ("Contact & Services", {
+            "fields": ("contact", "services")
+        }),
+        ("Social Media", {
+            "fields": ("instagram_link", "tiktok_link")
+        }),
+        ("Metadata", {
+            "fields": ("created_at",)
+        }),
+    )
+
 
 @admin.register(Homepage)
 class HomepageAdmin(ModelAdmin):

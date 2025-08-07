@@ -2,8 +2,8 @@ from django.shortcuts import render
 from rest_framework import status, generics
 from rest_framework.response import Response
 
-from homepage.models import Banner, AboutUs, Contact, Faq, Homepage, Service, Team, Trainer
-from homepage.serializers import BannerSerializer, AboutUsSerializer, ContactSerializer, FaqSerializer, HomepageSerializer, ServiceSerializer, TeamSerializer, TrainerSerializer
+from homepage.models import Banner, AboutUs, Contact, Faq, Footer, Homepage, Service, Team, Trainer
+from homepage.serializers import BannerSerializer, AboutUsSerializer, ContactSerializer, FaqSerializer, FooterSerializer, HomepageSerializer, ServiceSerializer, TeamSerializer, TrainerSerializer
 
 
 # BANNER VIEWS.
@@ -238,7 +238,40 @@ class ContactDetailView(generics.GenericAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         serializer = self.serializer_class(object)
-        return Response({"status": "success", "result": serializer.data})  
+        return Response({"status": "success", "result": serializer.data})
+
+# FOOTER VIEWS.
+class FooterListView(generics.GenericAPIView):
+    serializer_class = FooterSerializer
+
+    def get(self, request):
+        objects = Footer.objects.all()
+        if not objects:
+            return Response(
+                {"status": "No data available"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = self.serializer_class(objects, many=True)
+        return Response({"status": "success", "result": serializer.data})
+
+class FooterDetailView(generics.GenericAPIView):
+    serializer_class = FooterSerializer
+
+    def get_object(self, pk):
+        try:
+            return Footer.objects.get(pk=pk)
+        except:
+            return None
+
+    def get(self, request, pk):
+        object = self.get_object(pk=pk)
+        if object is None:
+            return Response(
+                {"status": "fail", "message": f"Footer with Id: {pk} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = self.serializer_class(object)
+        return Response({"status": "success", "result": serializer.data}) 
     
 # HOMEPAGE VIEWS.
 class HomepageListView(generics.GenericAPIView):
