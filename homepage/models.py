@@ -283,7 +283,7 @@ class Homepage(models.Model):
     )
     service_title = models.CharField("Service Title", max_length=255, default="Our Services")
     service_description = models.TextField("Service Description", blank=True, null=True)
-    faq_title = models.CharField("FAQ Title", max_length=255, default="Our Services")
+    faq_title = models.CharField("FAQ Title", max_length=255, default="Our Faq")
     faq_description = models.TextField("FAQ Description", blank=True, null=True)
     faqs = models.ManyToManyField(to=Faq, blank=True)
     services = models.ManyToManyField(to=Service, blank=True)

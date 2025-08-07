@@ -213,6 +213,8 @@ class HomepageAdmin(ModelAdmin):
                 "service_title",
                 "service_description",
                 "services",
+                "faq_title",
+                "faq_description",
                 "faqs"
             )
         }),
