@@ -79,6 +79,8 @@ class Banner(models.Model):
 
     def __str__(self):
         return f"{self.title_slide_1}"
+
+
 class Trainer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     profile_image = ResizedImageField(
@@ -134,7 +136,6 @@ class Team(models.Model):
 
     def __str__(self):
         return f"{self.title}"
-
 
 
 class AboutUs(models.Model):
@@ -221,7 +222,8 @@ class AboutUs(models.Model):
 
     def __str__(self):
         return f"{self.title}"
-    
+
+
 class Service(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     cover_image = ResizedImageField(
@@ -240,7 +242,7 @@ class Service(models.Model):
         ordering = ("name", "created_at")
         verbose_name = "Service"
         verbose_name_plural = "Services"
-        
+
     def __unicode__(self):
         return "%s: /n %s %s  %s %s" % (
             self.id,
@@ -249,8 +251,8 @@ class Service(models.Model):
 
     def __str__(self):
         return f"{self.name}"
-    
-    
+
+
 class Faq(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     question = models.TextField("Question")
@@ -261,7 +263,7 @@ class Faq(models.Model):
         ordering = ("question", "created_at")
         verbose_name = "FAQ"
         verbose_name_plural = "FAQ's"
-        
+
     def __unicode__(self):
         return "%s: /n %s %s  %s %s" % (
             self.id,
@@ -270,6 +272,36 @@ class Faq(models.Model):
 
     def __str__(self):
         return f"{self.question}"
+
+
+class Contact(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    header = models.CharField("Header", max_length=255)
+    description = models.TextField("Description", blank=True, null=True)
+    phone = models.CharField("phone", max_length=255)
+    address = models.CharField("Address", max_length=255)
+    email = models.CharField("Email", max_length=255)
+    social = models.CharField("Social", max_length=255)
+    created_at = models.DateTimeField("Created at", auto_now_add=True)
+
+    class Meta:
+        ordering = ("header", "created_at")
+        verbose_name = "Contact"
+        verbose_name_plural = "Contacts"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and AboutUs.objects.exists():
+            raise ValueError("Only one instance is allowed.")
+        return super().save(*args, **kwargs)
+
+    def __unicode__(self):
+        return "%s: /n %s %s  %s %s" % (
+            self.id,
+            self.created_at,
+        )
+
+    def __str__(self):
+        return f"{self.header}"
 
 
 class Homepage(models.Model):
@@ -281,12 +313,17 @@ class Homepage(models.Model):
     about_us = models.OneToOneField(
         AboutUs, on_delete=models.CASCADE, blank=True, null=True
     )
-    service_title = models.CharField("Service Title", max_length=255, default="Our Services")
+    service_title = models.CharField(
+        "Service Title", max_length=255, default="Our Services"
+    )
     service_description = models.TextField("Service Description", blank=True, null=True)
     faq_title = models.CharField("FAQ Title", max_length=255, default="Our Faq")
     faq_description = models.TextField("FAQ Description", blank=True, null=True)
     faqs = models.ManyToManyField(to=Faq, blank=True)
     services = models.ManyToManyField(to=Service, blank=True)
+    contact = models.OneToOneField(
+        Contact, on_delete=models.CASCADE, blank=True, null=True
+    )
     created_at = models.DateTimeField("Created at", auto_now_add=True)
 
     class Meta:

@@ -1,7 +1,7 @@
 from django.utils.html import format_html
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from homepage.models import AboutUs, Banner, Faq, Homepage, Service, Team, Trainer
+from homepage.models import AboutUs, Banner, Contact, Faq, Homepage, Service, Team, Trainer
 
 
 @admin.register(Banner)
@@ -195,6 +195,13 @@ class FaqAdmin(ModelAdmin):
     search_fields = ("question", "answer")
     list_filter = ("created_at",)
     ordering = ("question", "created_at")
+    
+@admin.register(Contact)
+class ContactAdmin(ModelAdmin):
+    list_display = ("header", "description", "email", "phone", "created_at")
+    search_fields = ("header", "description", "email", "phone", "address", "social")
+    list_filter = ("created_at",)
+    ordering = ("header", "created_at")
 
 @admin.register(Homepage)
 class HomepageAdmin(ModelAdmin):
@@ -215,7 +222,8 @@ class HomepageAdmin(ModelAdmin):
                 "services",
                 "faq_title",
                 "faq_description",
-                "faqs"
+                "faqs",
+                "contact"
             )
         }),
         ("Metadata", {

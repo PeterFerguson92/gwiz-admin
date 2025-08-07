@@ -1,6 +1,6 @@
 from django.urls import path
 
-from homepage.views import AboutUsDetailView, AboutUsListView, BannerDetailView, BannerListView, HomepageDetailView, HomepageListView, ServiceDetailView, ServiceListView, TeamDetailView, TeamListView, TrainerDetailView, TrainerListView
+from homepage.views import AboutUsDetailView, AboutUsListView, BannerDetailView, BannerListView, ContactDetailView, ContactListView, HomepageDetailView, HomepageListView, ServiceDetailView, ServiceListView, TeamDetailView, TeamListView, TrainerDetailView, TrainerListView
 
 
 
@@ -23,5 +23,8 @@ urlpatterns = [
     
     path("service", ServiceListView.as_view()),
     path("service/detail/<uuid:pk>", ServiceDetailView.as_view()),
+    
+    path("contact", ContactListView.as_view()),
+    path("contact/detail/<uuid:pk>", ContactDetailView.as_view()),
     
 ]
