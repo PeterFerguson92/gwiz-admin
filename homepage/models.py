@@ -14,6 +14,7 @@ from homepage.upload import (
     about_us_homepage_upload_image2_path,
     about_us_section_upload_image1_path,
     about_us_section_upload_image2_path,
+    contact_background_upload_image_path,
     homepage_logo_upload_image_path,
     homepage_slide1_upload_image_path,
     homepage_slide2_upload_image_path,
@@ -275,6 +276,13 @@ class Faq(models.Model):
 
 
 class Contact(models.Model):
+    background_image = ResizedImageField(
+        "Background Image",
+        upload_to=contact_background_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     header = models.CharField("Header", max_length=255)
     description = models.TextField("Description", blank=True, null=True)
@@ -282,6 +290,7 @@ class Contact(models.Model):
     address = models.CharField("Address", max_length=255)
     email = models.CharField("Email", max_length=255)
     social = models.CharField("Social", max_length=255)
+    access_key = models.CharField("Access key", max_length=255)
     created_at = models.DateTimeField("Created at", auto_now_add=True)
 
     class Meta:

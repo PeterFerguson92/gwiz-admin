@@ -55,3 +55,8 @@ def team_trainer_profile_upload_image_path(instance, filename):
 def service_cover_upload_image_path(instance, filename):
     ext = get_filename_ext(filename)
     return f"service/{instance.id}/img{ext}"
+
+# Contact.
+def contact_background_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"contact/{instance.id}/img{ext}"

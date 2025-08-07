@@ -196,12 +196,42 @@ class FaqAdmin(ModelAdmin):
     list_filter = ("created_at",)
     ordering = ("question", "created_at")
     
+from django.contrib import admin
+from unfold.admin import ModelAdmin
+from .models import Contact
+
+
 @admin.register(Contact)
 class ContactAdmin(ModelAdmin):
-    list_display = ("header", "description", "email", "phone", "created_at")
-    search_fields = ("header", "description", "email", "phone", "address", "social")
+    list_display = ("header", "email", "phone", "created_at")
+    search_fields = ("header", "email", "phone", "address", "social", "access_key")
     list_filter = ("created_at",)
     ordering = ("header", "created_at")
+    readonly_fields = ("created_at",)
+
+    fieldsets = (
+        ("Content", {
+            "fields": (
+                "header",
+                "description",
+                "background_image",
+            )
+        }),
+        ("Contact Info", {
+            "fields": (
+                "phone",
+                "email",
+                "address",
+                "social",
+            )
+        }),
+        ("Integration", {
+            "fields": ("access_key",)
+        }),
+        ("Meta", {
+            "fields": ("created_at",)
+        }),
+    )
 
 @admin.register(Homepage)
 class HomepageAdmin(ModelAdmin):
