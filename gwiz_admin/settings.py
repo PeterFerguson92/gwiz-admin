@@ -1,3 +1,4 @@
+from datetime import timedelta
 import os
 from pathlib import Path
 import environ
@@ -35,6 +36,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "homepage",
+    "accounts"
 ]
 
 MIDDLEWARE = [
@@ -88,6 +90,9 @@ else:
             "PORT": env("PGPORT"),
         }
     }
+    
+AUTH_USER_MODEL = "accounts.User"
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -145,4 +150,46 @@ UNFOLD = {
     "SITE_TITLE": "Gwiz Admin",
     "SITE_HEADER": "Gwiz Dashboard",
     "THEME": "auto",  # light / dark / auto
+}
+
+# DRF + JWT Settings
+# -------------------------------------------------------------------
+# Django REST Framework + SimpleJWT Authentication Settings
+#
+# REST_FRAMEWORK:
+#   - DEFAULT_AUTHENTICATION_CLASSES:
+#         Uses JWTAuthentication, meaning every request is checked for
+#         an Authorization header like: "Bearer <access_token>".
+#
+#   - DEFAULT_PERMISSION_CLASSES:
+#         By default, all API endpoints require the user to be
+#         authenticated. Public endpoints (e.g., login/register)
+#         must explicitly set: permission_classes = [AllowAny].
+#
+# SIMPLE_JWT:
+#   - ACCESS_TOKEN_LIFETIME:
+#         Access tokens (used for each request) expire after 30 minutes
+#         to reduce risk if stolen.
+#
+#   - REFRESH_TOKEN_LIFETIME:
+#         Refresh tokens (used to obtain new access tokens) last 7 days.
+#         This allows users to stay logged in without entering credentials.
+#
+#   - AUTH_HEADER_TYPES:
+#         Defines the prefix for JWTs in the Authorization header.
+#         Example: "Authorization: Bearer <token>".
+# -------------------------------------------------------------------
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
