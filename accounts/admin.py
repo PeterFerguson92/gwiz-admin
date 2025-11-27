@@ -32,6 +32,8 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     list_display = (
         "username",
         "email",
+        "first_name",
+        "last_name",
         "full_name",
         "provider",
         "is_social_login",
@@ -40,17 +42,44 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         "last_login",
     )
     list_display_links = ("username",)
-    list_filter = ("is_active", "is_staff", "is_superuser", "provider", "is_social_login")
+    list_filter = (
+        "is_active",
+        "is_staff",
+        "is_superuser",
+        "provider",
+        "is_social_login",
+    )
 
     fieldsets = (
-        (None, {"fields": ("username", "email", "password", "full_name", "avatar_url")}),
+        (
+            None,
+            {
+                "fields": (
+                    "username",
+                    "email",
+                    "first_name",
+                    "last_name",
+                    "full_name",
+                    "avatar_url",
+                    "phone_number",
+                )
+            },
+        ),
         (
             "Social login",
             {"fields": ("is_social_login", "provider")},
         ),
         (
             "Permissions",
-            {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")},
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                    "groups",
+                    "user_permissions",
+                )
+            },
         ),
         ("Important dates", {"fields": ("last_login", "date_joined")}),
     )
