@@ -8,7 +8,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from .serializers import EmailTokenObtainSerializer, RegisterSerializer
+from .serializers import EmailTokenObtainSerializer, RegisterSerializer, GoogleLoginSerializer
 
 User = get_user_model()
 
@@ -40,8 +40,7 @@ class SimpleTokenRefreshView(TokenRefreshView):
 class MeView(APIView):
     """
     GET /api/auth/me/
-    Returns basic info about the currently authenticated user.
-    Requires Authorization: Bearer <access_token>.
+    Returns info about the current user.
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -52,5 +51,24 @@ class MeView(APIView):
                 "id": user.id,
                 "email": user.email,
                 "username": user.username,
+                "full_name": user.full_name,
+                "avatar_url": user.avatar_url,
+                "is_social_login": user.is_social_login,
+                "provider": user.provider,
             }
         )
+        
+class GoogleLoginView(APIView):
+    """
+    POST /api/auth/google/
+    Body: { "id_token": "<google_id_token>" }
+    Returns: { refresh, access, user }
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = GoogleLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # 👇 IMPORTANT: use validated_data (what validate() returns)
+        return Response(serializer.validated_data)
