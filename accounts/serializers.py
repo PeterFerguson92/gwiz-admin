@@ -1,5 +1,7 @@
 # accounts/serializers.py
 
+from django.core.mail import send_mail
+from django.urls import reverse
 from django.conf import settings
 from django.utils.text import slugify
 from django.contrib.auth import get_user_model
@@ -447,27 +449,109 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         """
-        If a user with this email exists, create a reset token.
-        We don't reveal whether the email exists.
+        If a user with this email exists, create a reset token
+        and send a reset email. We don't reveal whether the email exists.
         """
+        request = self.context.get("request")
         email = self.validated_data["email"]
+
         user = User.objects.filter(email=email).first()
         if not user:
-            return None  # silently ignore
+            # Silently ignore to avoid leaking which emails exist
+            return None
 
         token_generator = PasswordResetTokenGenerator()
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = token_generator.make_token(user)
 
-        # At this point you would normally send an email.
-        # e.g. build a URL like:
-        # reset_url = f"{frontend_base_url}/reset-password?uid={uid}&token={token}"
-        # and send it via Django's EmailMessage/SendGrid/etc.
+        # Build reset URL
+        # Prefer frontend route, fall back to backend confirm endpoint
+        frontend_url = getattr(settings, "FRONTEND_RESET_PASSWORD_URL", None)
+        if frontend_url:
+            # e.g. https://app.fsxcg.com/reset-password?uid=...&token=...
+            reset_url = f"{frontend_url}?uid={uid}&token={token}"
+        else:
+            # Fallback to backend endpoint
+            path = reverse("auth-password-reset-confirm")
+            base_url = request.build_absolute_uri(path) if request else ""
+            reset_url = f"{base_url}?uid={uid}&token={token}"
 
+        # Email content
+        user_name = user.first_name or user.email
+
+        subject = "Reset your Fsxcg password"
+        plain_message = (
+            f"Hi {user_name},\n\n"
+            "We received a request to reset the password for your account.\n\n"
+            f"To reset your password, click the link below:\n\n"
+            f"{reset_url}\n\n"
+            "If you did not request a password reset, you can safely ignore this email.\n\n"
+            "Thanks,\n"
+            "The Fsxcg Team"
+        )
+
+        html_message = f"""
+        <!DOCTYPE html>
+        <html>
+          <body style="font-family: Arial, sans-serif; background-color:#f6f6f6; padding: 20px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; margin:auto; background:#ffffff; padding: 20px; border-radius: 8px;">
+              <tr>
+                <td>
+                  <h2 style="color:#333333;">Reset Your Password</h2>
+
+                  <p style="font-size: 15px; color:#555;">
+                    Hi {user_name},
+                  </p>
+
+                  <p style="font-size: 15px; color:#555;">
+                    We received a request to reset your password. Click the button below to choose a new one.
+                  </p>
+
+                  <p style="text-align:center; margin: 30px 0;">
+                    <a href="{reset_url}" 
+                       style="background-color:#007bff; color:white; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold;">
+                      Reset Password
+                    </a>
+                  </p>
+
+                  <p style="font-size: 14px; color:#777;">
+                    If the button does not work, copy and paste this link into your browser:
+                  </p>
+
+                  <p style="font-size: 14px; word-break: break-all; color:#007bff;">
+                    {reset_url}
+                  </p>
+
+                  <hr style="border:none; border-top:1px solid #eee; margin: 25px 0;"/>
+
+                  <p style="font-size: 13px; color:#999;">
+                    If you did not request a password reset, you can safely ignore this email.
+                  </p>
+
+                  <p style="font-size: 14px; color:#333;">— The Fsxcg Team</p>
+                </td>
+              </tr>
+            </table>
+          </body>
+        </html>
+        """
+
+        # Send via Django email backend (configured to use SendGrid in settings.py)
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+
+        # Optionally return data for logging/debugging
         return {
             "user": user,
             "uid": uid,
             "token": token,
+            "reset_url": reset_url,
         }
 
 

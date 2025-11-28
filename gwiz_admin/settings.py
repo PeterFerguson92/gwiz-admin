@@ -212,3 +212,44 @@ SIMPLE_JWT = {
 }
 
 GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID")
+
+# # Default: use console backend in development
+# if DEBUG:
+#     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    
+# else:
+#     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+#     EMAIL_HOST = "smtp.sendgrid.net"
+#     EMAIL_PORT = 587
+#     EMAIL_USE_TLS = True
+
+#     # SendGrid uses 'apikey' as the username, and the actual API key as the password
+#     EMAIL_HOST_USER = "apikey"
+#     EMAIL_HOST_PASSWORD = os.environ.get("SENDGRID_API_KEY")
+
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+EMAIL_HOST = "smtp.sendgrid.net"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = "apikey"  # literally this string
+EMAIL_HOST_PASSWORD = os.environ.get("SENDGRID_API_KEY")
+
+DEFAULT_FROM_EMAIL = "Fsxcg <no-reply@fsxcg.com>"
+
+FRONTEND_RESET_PASSWORD_URL = os.environ.get(
+    "FRONTEND_RESET_PASSWORD_URL",
+    "http://localhost:3000/reset-password",
+)
+
+# Sender shown in emails
+DEFAULT_FROM_EMAIL = "Fsxcg <no-reply@fsxcg.com>"
+
+# (Optional) Frontend URL for reset link
+FRONTEND_RESET_PASSWORD_URL = os.environ.get(
+    "FRONTEND_RESET_PASSWORD_URL",
+    "http://localhost:3000/reset-password",
+)
