@@ -12,7 +12,8 @@ from .serializers import (
     EmailTokenObtainSerializer,
     RegisterSerializer,
     GoogleLoginSerializer,
-    UserUpdateSerializer
+    UserUpdateSerializer,
+    ChangePasswordSerializer,
 )
 
 User = get_user_model()
@@ -92,3 +93,15 @@ class GoogleLoginView(APIView):
 
         # 👇 IMPORTANT: use validated_data (what validate() returns)
         return Response(serializer.validated_data)
+    
+class ChangePasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(
+            data=request.data,
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Password updated successfully."})

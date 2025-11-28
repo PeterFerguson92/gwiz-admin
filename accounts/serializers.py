@@ -278,6 +278,7 @@ class GoogleLoginSerializer(serializers.Serializer):
             },
         }
 
+
 class UserUpdateSerializer(serializers.ModelSerializer):
     # Match your RegisterSerializer naming
     name = serializers.CharField(source="first_name", required=False)
@@ -348,7 +349,6 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
         return value
 
-
     def update(self, instance, validated_data):
         """
         Ensure full_name is kept in sync with first_name / last_name.
@@ -367,3 +367,57 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True, required=False)
+    new_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+
+        if user is None or not user.is_authenticated:
+            raise serializers.ValidationError("User is not authenticated.")
+
+        old_password = attrs.get("old_password")
+        new_password = attrs.get("new_password")
+        confirm_password = attrs.get("confirm_password")
+
+        # ---- Confirm new passwords match ----
+        if new_password != confirm_password:
+            raise serializers.ValidationError(
+                {"confirm_password": "Passwords do not match."}
+            )
+
+        # ---- Social login users: don't require old password ----
+        if not user.is_social_login:
+            # Only enforce old password for non-social accounts
+            if user.has_usable_password():
+                if not old_password:
+                    raise serializers.ValidationError(
+                        {"old_password": "Current password is required."}
+                    )
+                if not user.check_password(old_password):
+                    raise serializers.ValidationError(
+                        {"old_password": "Current password is incorrect."}
+                    )
+
+        # ---- Validate new password strength ----
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({"new_password": list(e.messages)})
+
+        return attrs
+
+    def save(self, **kwargs):
+        request = self.context.get("request")
+        user = request.user
+
+        new_password = self.validated_data["new_password"]
+        user.set_password(new_password)
+        user.save()
+
+        return user
