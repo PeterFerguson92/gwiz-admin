@@ -12,6 +12,7 @@ from .serializers import (
     EmailTokenObtainSerializer,
     RegisterSerializer,
     GoogleLoginSerializer,
+    UserUpdateSerializer
 )
 
 User = get_user_model()
@@ -48,28 +49,32 @@ class SimpleTokenRefreshView(TokenRefreshView):
 
 class MeView(APIView):
     """
-    GET /api/auth/me/
-    Returns info about the current user.
+    GET    /api/auth/me/      -> return current user profile
+    PATCH  /api/auth/me/      -> partial update (name, surname, phone_number, email)
+    PUT    /api/auth/me/      -> full update
     """
 
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        user = request.user
-        return Response(
-            {
-                "id": user.id,
-                "email": user.email,
-                "username": user.username,
-                "name": user.first_name, 
-                "surname": user.last_name,
-                "full_name": user.full_name,
-                "avatar_url": user.avatar_url,
-                "phone_number": user.phone_number,
-                "is_social_login": user.is_social_login,
-                "provider": user.provider,
-            }
+        serializer = UserUpdateSerializer(request.user)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        serializer = UserUpdateSerializer(
+            request.user, data=request.data, partial=True
         )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(UserUpdateSerializer(user).data)
+
+    def put(self, request):
+        serializer = UserUpdateSerializer(
+            request.user, data=request.data, partial=False
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(UserUpdateSerializer(user).data)
 
 
 class GoogleLoginView(APIView):

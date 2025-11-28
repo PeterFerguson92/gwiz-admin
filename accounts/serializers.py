@@ -277,3 +277,93 @@ class GoogleLoginSerializer(serializers.Serializer):
                 "provider": user.provider,
             },
         }
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    # Match your RegisterSerializer naming
+    name = serializers.CharField(source="first_name", required=False)
+    surname = serializers.CharField(source="last_name", required=False)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "email",
+            "username",
+            "full_name",
+            "name",
+            "surname",
+            "phone_number",
+            "avatar_url",
+            "is_social_login",
+            "provider",
+        ]
+        read_only_fields = [
+            "id",
+            "username",
+            "full_name",
+            "avatar_url",
+            "is_social_login",
+            "provider",
+        ]
+
+    def validate_phone_number(self, value):
+        import re
+
+        value = value.strip()
+
+        pattern = r"^[0-9+\-]+$"
+        if not re.match(pattern, value):
+            raise serializers.ValidationError(
+                "Phone number can only contain digits, + and -, and no spaces."
+            )
+
+        if len(value) < 7:
+            raise serializers.ValidationError("Phone number is too short.")
+
+        if len(value) > 20:
+            raise serializers.ValidationError("Phone number is too long.")
+
+        return value
+
+    def validate_email(self, value):
+        value = value.strip().lower()
+
+        # If the user logged in through Google (or any social provider),
+        # they cannot change their email.
+        if self.instance and self.instance.is_social_login:
+            if value != self.instance.email:
+                raise serializers.ValidationError(
+                    "Email cannot be changed for social login accounts."
+                )
+            return value  # unchanged, allowed
+
+        # ----- Normal account email validation -----
+
+        # Enforce uniqueness, except for the current user
+        qs = User.objects.filter(email=value)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Email is already registered.")
+
+        return value
+
+
+    def update(self, instance, validated_data):
+        """
+        Ensure full_name is kept in sync with first_name / last_name.
+        validated_data already uses real field names (first_name, last_name, etc.)
+        because of `source=`.
+        """
+        first_name = validated_data.pop("first_name", instance.first_name)
+        last_name = validated_data.pop("last_name", instance.last_name)
+
+        instance.first_name = first_name
+        instance.last_name = last_name
+        instance.full_name = f"{first_name} {last_name}".strip()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
