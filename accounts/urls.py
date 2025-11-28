@@ -2,7 +2,15 @@ from django.urls import path
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
-from .views import ChangePasswordView, EmailTokenObtainPairView, GoogleLoginView, RegisterView, MeView
+from .views import (
+    ChangePasswordView,
+    EmailTokenObtainPairView,
+    GoogleLoginView,
+    PasswordResetConfirmView,
+    PasswordResetRequestView,
+    RegisterView,
+    MeView,
+)
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
@@ -12,4 +20,14 @@ urlpatterns = [
     path("me/", MeView.as_view(), name="me"),
     path("google/", GoogleLoginView.as_view(), name="google_login"),
     path("password/change/", ChangePasswordView.as_view(), name="auth-password-change"),
+    path(
+        "password/reset/",
+        PasswordResetRequestView.as_view(),
+        name="auth-password-reset",
+    ),
+    path(
+        "password/reset/confirm/",
+        PasswordResetConfirmView.as_view(),
+        name="auth-password-reset-confirm",
+    ),
 ]

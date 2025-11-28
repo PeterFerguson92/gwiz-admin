@@ -4,6 +4,9 @@ from django.conf import settings
 from django.utils.text import slugify
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -421,3 +424,85 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.save()
 
         return user
+    
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        # Normalize email
+        return value.strip().lower()
+
+    def save(self, **kwargs):
+        """
+        If a user with this email exists, create a reset token.
+        We don't reveal whether the email exists.
+        """
+        email = self.validated_data["email"]
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return None  # silently ignore
+
+        token_generator = PasswordResetTokenGenerator()
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = token_generator.make_token(user)
+
+        # At this point you would normally send an email.
+        # e.g. build a URL like:
+        # reset_url = f"{frontend_base_url}/reset-password?uid={uid}&token={token}"
+        # and send it via Django's EmailMessage/SendGrid/etc.
+
+        return {
+            "user": user,
+            "uid": uid,
+            "token": token,
+        }
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        uid = attrs.get("uid")
+        token = attrs.get("token")
+        new_password = attrs.get("new_password")
+        confirm_password = attrs.get("confirm_password")
+
+        # 1) Check passwords match
+        if new_password != confirm_password:
+            raise serializers.ValidationError(
+                {"confirm_password": "Passwords do not match."}
+            )
+
+        # 2) Resolve user from uid
+        try:
+            uid_str = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=uid_str)
+        except Exception:
+            raise serializers.ValidationError({"uid": "Invalid reset link."})
+
+        # 3) Check token validity
+        token_generator = PasswordResetTokenGenerator()
+        if not token_generator.check_token(user, token):
+            raise serializers.ValidationError(
+                {"token": "Invalid or expired reset token."}
+            )
+
+        # 4) Validate new password strength
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({"new_password": list(e.messages)})
+
+        attrs["user"] = user
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.validated_data["user"]
+        new_password = self.validated_data["new_password"]
+        user.set_password(new_password)
+        user.save()
+        return user
+

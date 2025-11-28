@@ -10,6 +10,8 @@ from rest_framework_simplejwt.views import (
 )
 from .serializers import (
     EmailTokenObtainSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
     RegisterSerializer,
     GoogleLoginSerializer,
     UserUpdateSerializer,
@@ -105,3 +107,60 @@ class ChangePasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"detail": "Password updated successfully."})
+    
+class PasswordResetRequestView(APIView):
+    """
+    POST /api/auth/password/reset/
+    Body: { "email": "<user-email>" }
+
+    Always returns a generic success message, even if the email
+    is not registered, to avoid leaking which emails exist.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+
+        # For debugging you *could* return uid/token here,
+        # but in production you normally just email them.
+        # Example debug:
+        # if settings.DEBUG and result:
+        #     return Response({
+        #         "detail": "Password reset email sent.",
+        #         "uid": result["uid"],
+        #         "token": result["token"],
+        #     })
+
+        return Response(
+            {
+                "detail": "If an account with that email exists, we have sent password reset instructions."
+            }
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    """
+    POST /api/auth/password/reset/confirm/
+    Body:
+    {
+      "uid": "<uid-from-link>",
+      "token": "<token-from-link>",
+      "new_password": "...",
+      "confirm_password": "..."
+    }
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Password has been reset successfully."})
+
