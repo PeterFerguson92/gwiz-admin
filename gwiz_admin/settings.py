@@ -36,7 +36,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "homepage",
-    "accounts"
+    "accounts",
+    "drf_spectacular",
+    "drf_spectacular_sidecar", 
 ]
 
 MIDDLEWARE = [
@@ -194,6 +196,13 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Fsxcg Admin API",
+    "DESCRIPTION": "Authentication and admin API for Fsxcg.",
+    "VERSION": "1.0.0",
 }
 
 SIMPLE_JWT = {

@@ -9,24 +9,48 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from .serializers import (
+    AuthTokenResponseSerializer,
+    DetailSerializer,
     EmailTokenObtainSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     RegisterSerializer,
     GoogleLoginSerializer,
+    UserReadSerializer,
     UserUpdateSerializer,
     ChangePasswordSerializer,
 )
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
 User = get_user_model()
 
-
+# ---------------------------------------------------------
+# REGISTER
+# ---------------------------------------------------------
+@extend_schema_view(
+    post=extend_schema(
+        summary="Register a new user",
+        tags=["Auth"],
+        request=RegisterSerializer,
+        responses={201: UserReadSerializer},
+    )
+)
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]  # open to non-authenticated
 
-
+# ---------------------------------------------------------
+# EMAIL LOGIN
+# ---------------------------------------------------------
+@extend_schema_view(
+    post=extend_schema(
+        summary="Login with email + password",
+        tags=["Auth"],
+        request=EmailTokenObtainSerializer,
+        responses={200: AuthTokenResponseSerializer},
+    )
+)
 class EmailTokenObtainPairView(TokenObtainPairView):
     """
     POST /api/auth/token/
@@ -39,7 +63,15 @@ class EmailTokenObtainPairView(TokenObtainPairView):
     serializer_class = EmailTokenObtainSerializer
     permission_classes = [permissions.AllowAny]
 
-
+# ---------------------------------------------------------
+# REFRESH TOKEN
+# ---------------------------------------------------------
+@extend_schema_view(
+    post=extend_schema(
+        summary="Refresh JWT access token",
+        tags=["Auth"],
+    )
+)
 class SimpleTokenRefreshView(TokenRefreshView):
     """
     POST /api/auth/token/refresh/
@@ -49,7 +81,9 @@ class SimpleTokenRefreshView(TokenRefreshView):
 
     permission_classes = [permissions.AllowAny]
 
-
+# ---------------------------------------------------------
+# CURRENT USER PROFILE
+# ---------------------------------------------------------
 class MeView(APIView):
     """
     GET    /api/auth/me/      -> return current user profile
@@ -58,11 +92,22 @@ class MeView(APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
-
+    
+    @extend_schema(
+        summary="Get current user profile",
+        tags=["User"],
+        responses={200: UserReadSerializer},
+    )
     def get(self, request):
         serializer = UserUpdateSerializer(request.user)
         return Response(serializer.data)
-
+    
+    @extend_schema(
+        summary="Partially update user profile",
+        tags=["User"],
+        request=UserUpdateSerializer,
+        responses={200: UserReadSerializer},
+    )
     def patch(self, request):
         serializer = UserUpdateSerializer(
             request.user, data=request.data, partial=True
@@ -70,7 +115,13 @@ class MeView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return Response(UserUpdateSerializer(user).data)
-
+    
+    @extend_schema(
+        summary="Fully update user profile",
+        tags=["User"],
+        request=UserUpdateSerializer,
+        responses={200: UserReadSerializer},
+    )
     def put(self, request):
         serializer = UserUpdateSerializer(
             request.user, data=request.data, partial=False
@@ -79,7 +130,9 @@ class MeView(APIView):
         user = serializer.save()
         return Response(UserUpdateSerializer(user).data)
 
-
+# ---------------------------------------------------------
+# GOOGLE LOGIN
+# ---------------------------------------------------------
 class GoogleLoginView(APIView):
     """
     POST /api/auth/google/
@@ -88,7 +141,12 @@ class GoogleLoginView(APIView):
     """
 
     permission_classes = [permissions.AllowAny]
-
+    @extend_schema(
+        summary="Login/register using Google",
+        tags=["Auth"],
+        request=GoogleLoginSerializer,
+        responses={200: AuthTokenResponseSerializer},
+    )
     def post(self, request):
         serializer = GoogleLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -99,6 +157,12 @@ class GoogleLoginView(APIView):
 class ChangePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        summary="Change current user's password",
+        tags=["Password"],
+        request=ChangePasswordSerializer,
+        responses={200: DetailSerializer},
+    )
     def post(self, request):
         serializer = ChangePasswordSerializer(
             data=request.data,
@@ -107,7 +171,10 @@ class ChangePasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"detail": "Password updated successfully."})
-    
+
+# ---------------------------------------------------------
+# REQUEST PASSWORD RESET
+# ---------------------------------------------------------  
 class PasswordResetRequestView(APIView):
     """
     POST /api/auth/password/reset/
@@ -118,7 +185,13 @@ class PasswordResetRequestView(APIView):
     """
 
     permission_classes = [permissions.AllowAny]
-
+    
+    @extend_schema(
+        summary="Request password reset email",
+        tags=["Password"],
+        request=PasswordResetRequestSerializer,
+        responses={200: DetailSerializer},
+    )
     def post(self, request):
         serializer = PasswordResetRequestSerializer(
             data=request.data,
@@ -143,7 +216,9 @@ class PasswordResetRequestView(APIView):
             }
         )
 
-
+# ---------------------------------------------------------
+# CONFIRM PASSWORD RESET
+# ---------------------------------------------------------
 class PasswordResetConfirmView(APIView):
     """
     POST /api/auth/password/reset/confirm/
@@ -158,6 +233,12 @@ class PasswordResetConfirmView(APIView):
 
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        summary="Confirm password reset",
+        tags=["Password"],
+        request=PasswordResetConfirmSerializer,
+        responses={200: DetailSerializer},
+    )
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

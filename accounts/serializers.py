@@ -18,6 +18,9 @@ from google.auth.transport import requests as google_requests
 User = get_user_model()
 
 
+# ---------------------------------------------------------
+# REGISTER SERIALIZER
+# ---------------------------------------------------------
 class RegisterSerializer(serializers.ModelSerializer):
     # What user sends in
     name = serializers.CharField(required=True, source="first_name")
@@ -146,7 +149,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-
+# ---------------------------------------------------------
+# EMAIL LOGIN SERIALIZER
+# ---------------------------------------------------------
 class EmailTokenObtainSerializer(TokenObtainPairSerializer):
     """
     JWT login using email + password.
@@ -188,7 +193,9 @@ class EmailTokenObtainSerializer(TokenObtainPairSerializer):
 
         return data
 
-
+# ---------------------------------------------------------
+# GOOGLE LOGIN SERIALIZER
+# ---------------------------------------------------------
 class GoogleLoginSerializer(serializers.Serializer):
     """
     Accepts a Google ID token, verifies it, and returns JWT tokens + user info.
@@ -281,7 +288,9 @@ class GoogleLoginSerializer(serializers.Serializer):
             },
         }
 
-
+# ---------------------------------------------------------
+# PROFILE UPDATE SERIALIZER
+# ---------------------------------------------------------
 class UserUpdateSerializer(serializers.ModelSerializer):
     # Match your RegisterSerializer naming
     name = serializers.CharField(source="first_name", required=False)
@@ -371,7 +380,9 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-
+# ---------------------------------------------------------
+# CHANGE PASSWORD SERIALIZER
+# ---------------------------------------------------------
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True, required=False)
     new_password = serializers.CharField(write_only=True)
@@ -424,7 +435,9 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.save()
 
         return user
-    
+# ---------------------------------------------------------
+# RESET PASSWORD SERIALIZERS
+# ---------------------------------------------------------    
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
@@ -506,3 +519,34 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user.save()
         return user
 
+# ---------------------------------------------------------
+# DOCUMENTATION-ONLY SERIALIZERS
+# ---------------------------------------------------------
+class UserReadSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="first_name")
+    surname = serializers.CharField(source="last_name")
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "email",
+            "username",
+            "name",
+            "surname",
+            "full_name",
+            "avatar_url",
+            "phone_number",
+            "is_social_login",
+            "provider",
+        ]
+
+
+class AuthTokenResponseSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+    access = serializers.CharField()
+    user = UserReadSerializer()
+
+
+class DetailSerializer(serializers.Serializer):
+    detail = serializers.CharField()
