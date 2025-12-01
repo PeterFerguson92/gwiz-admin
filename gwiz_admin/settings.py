@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "homepage",
     "accounts",
+    "booking",
     "drf_spectacular",
     "drf_spectacular_sidecar",
 ]

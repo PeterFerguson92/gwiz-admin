@@ -27,6 +27,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/homepage/", include("homepage.urls")),
     path("api/auth/", include("accounts.urls")),
+    path("api/booking/", include("booking.urls")),
     # Raw OpenAPI schema
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     # Swagger UI
