@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from django import forms
 from django.contrib import admin, messages
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
@@ -171,15 +172,17 @@ class ClassSessionForm(forms.ModelForm):
 class ClassSessionAdmin(admin.ModelAdmin):
     form = ClassSessionForm
 
+    change_list_template = "admin/booking/classsession/change_list.html"
+
     list_display = (
         "fitness_class",
         "formatted_date",
         "formatted_time",
         "status",
     )
-    list_filter = ("status", "date")
+    list_filter = ("fitness_class", "status", "date")
     autocomplete_fields = ("fitness_class", "created_from_rule")
-    ordering = ("-date",)
+    ordering = ("fitness_class__name", "date", "start_time")
 
     def formatted_date(self, obj):
         return obj.date.strftime("%A, %d %b %Y")
@@ -192,3 +195,71 @@ class ClassSessionAdmin(admin.ModelAdmin):
         return f"{start} → {end}"
 
     formatted_time.short_description = "Time"
+
+    # --- custom URLs for grouped view --- #
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "grouped/",
+                self.admin_site.admin_view(self.grouped_view),
+                name="booking_classsession_grouped",
+            ),
+        ]
+        return custom_urls + urls
+
+    def grouped_view(self, request):
+        """
+        Custom read-only view that shows sessions grouped by FitnessClass,
+        with simple search + status filter.
+        """
+        qs = self.get_queryset(request).select_related("fitness_class")
+
+        # Simple search: filter by fitness class name
+        query = request.GET.get("q") or ""
+        if query:
+            qs = qs.filter(Q(fitness_class__name__icontains=query))
+
+        # Status filter
+        status_filter = request.GET.get("status") or ""
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+
+        # Final ordering: class name ASC, date/time DESC
+        qs = qs.order_by("fitness_class__name", "date", "start_time")
+
+        # Build grouped data: [(class_name, [sessions]), ...]
+        groups = []
+        current_class = None
+        current_list = []
+
+        for session in qs:
+            class_name = session.fitness_class.name if session.fitness_class else "—"
+            if class_name != current_class:
+                if current_list:
+                    groups.append((current_class, current_list))
+                current_class = class_name
+                current_list = []
+            current_list.append(session)
+
+        if current_list:
+            groups.append((current_class, current_list))
+
+        # For status dropdown
+        status_choices = self.model._meta.get_field("status").choices
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Class sessions grouped by Fitness class",
+            "groups": groups,
+            "opts": self.model._meta,
+            "query": query,
+            "status_filter": status_filter,
+            "status_choices": status_choices,
+        }
+        return TemplateResponse(
+            request,
+            "admin/booking/classsession/grouped.html",
+            context,
+        )
