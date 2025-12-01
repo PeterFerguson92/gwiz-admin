@@ -3,6 +3,7 @@
 import datetime  # add this
 
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import generics
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny
@@ -12,11 +13,20 @@ from booking.serializer import ClassSessionSerializer, FitnessClassSerializer
 from .models import ClassSession, FitnessClass
 
 
+@extend_schema(
+    tags=["Booking"],
+    parameters=[
+        OpenApiParameter(
+            "active",
+            OpenApiTypes.BOOL,
+            description="Filter classes by active status (true/false)",
+            required=False,
+        )
+    ],
+    responses=FitnessClassSerializer(many=True),
+)
 class FitnessClassListView(generics.ListAPIView):
-    """
-    List all fitness classes.
-    Optional ?active=true to return only active ones.
-    """
+    """List all fitness classes. Optional `?active=true` to return only active ones."""
 
     serializer_class = FitnessClassSerializer
     permission_classes = [AllowAny]
@@ -33,12 +43,9 @@ class FitnessClassListView(generics.ListAPIView):
         return qs
 
 
+@extend_schema(tags=["Booking"], responses=FitnessClassSerializer(many=True))
 class ActiveFitnessClassListView(generics.ListAPIView):
-    """
-    Returns all active fitness classes.
-
-    GET /api/booking/fitness-classes/active
-    """
+    """Returns all active fitness classes (GET /api/booking/fitness-classes/active)."""
 
     serializer_class = FitnessClassSerializer
     permission_classes = [AllowAny]
@@ -51,15 +58,32 @@ class ActiveFitnessClassListView(generics.ListAPIView):
         )
 
 
+@extend_schema(
+    tags=["Booking"],
+    parameters=[
+        OpenApiParameter(
+            "from_date",
+            OpenApiTypes.DATE,
+            description="Start date (YYYY-MM-DD). Defaults to today if omitted.",
+            required=False,
+        ),
+        OpenApiParameter(
+            "to_date",
+            OpenApiTypes.DATE,
+            description="End date (YYYY-MM-DD).",
+            required=False,
+        ),
+        OpenApiParameter(
+            "genre",
+            OpenApiTypes.STR,
+            description="Filter by fitness class genre.",
+            required=False,
+        ),
+    ],
+    responses=ClassSessionSerializer(many=True),
+)
 class UpcomingClassSessionListView(generics.ListAPIView):
-    """
-    Simple read-only endpoint to list upcoming class sessions.
-
-    Query params:
-      - from_date (YYYY-MM-DD) optional, default = today
-      - to_date   (YYYY-MM-DD) optional
-      - genre     filter by FitnessClass.genre
-    """
+    """List upcoming class sessions with optional date and genre filters."""
 
     serializer_class = ClassSessionSerializer
     permission_classes = [AllowAny]
@@ -89,6 +113,18 @@ class UpcomingClassSessionListView(generics.ListAPIView):
         return qs.order_by("date", "start_time")
 
 
+@extend_schema(
+    tags=["Booking"],
+    parameters=[
+        OpenApiParameter(
+            "pk",
+            OpenApiTypes.UUID,
+            description="Fitness class UUID",
+            location=OpenApiParameter.PATH,
+        )
+    ],
+    responses=ClassSessionSerializer(many=True),
+)
 class FitnessClassSessionsView(generics.ListAPIView):
     serializer_class = ClassSessionSerializer
     permission_classes = [AllowAny]
