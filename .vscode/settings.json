@@ -1,0 +1,17 @@
+{
+	"editor.formatOnSave": true,
+	"editor.codeActionsOnSave": {
+		"source.organizeImports": true
+	},
+	"python.formatting.provider": "black",
+	"python.formatting.blackArgs": ["--line-length", "88"],
+	"python.sortImports.args": ["--profile", "black"],
+	"files.exclude": {
+		"**/__pycache__": true,
+		"**/.pytest_cache": true,
+		"**/.venv": true,
+		"**/env": true,
+		"**/venv": true
+	},
+	"python.pythonPath": "./env/bin/python"
+}
