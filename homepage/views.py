@@ -1,9 +1,29 @@
 from django.shortcuts import render
-from rest_framework import status, generics
+from rest_framework import generics, status
 from rest_framework.response import Response
 
-from homepage.models import Banner, AboutUs, Contact, Faq, Footer, Homepage, Service, Team, Trainer
-from homepage.serializers import BannerSerializer, AboutUsSerializer, ContactSerializer, FaqSerializer, FooterSerializer, HomepageSerializer, ServiceSerializer, TeamSerializer, TrainerSerializer
+from homepage.models import (
+    AboutUs,
+    Banner,
+    Contact,
+    Faq,
+    Footer,
+    Homepage,
+    Service,
+    Team,
+    Trainer,
+)
+from homepage.serializers import (
+    AboutUsSerializer,
+    BannerSerializer,
+    ContactSerializer,
+    FaqSerializer,
+    FooterSerializer,
+    HomepageSerializer,
+    ServiceSerializer,
+    TeamSerializer,
+    TrainerSerializer,
+)
 
 
 # BANNER VIEWS.
@@ -39,7 +59,8 @@ class BannerDetailView(generics.GenericAPIView):
             )
         serializer = self.serializer_class(object)
         return Response({"status": "success", "result": serializer.data})
-    
+
+
 # ABOUT US VIEWS.
 class AboutUsListView(generics.GenericAPIView):
     serializer_class = AboutUsSerializer
@@ -72,7 +93,8 @@ class AboutUsDetailView(generics.GenericAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         serializer = self.serializer_class(object)
-        return Response({"status": "success", "result": serializer.data})    
+        return Response({"status": "success", "result": serializer.data})
+
 
 # TRAINER VIEWS.
 class TrainerListView(generics.GenericAPIView):
@@ -87,6 +109,7 @@ class TrainerListView(generics.GenericAPIView):
             )
         serializer = self.serializer_class(objects, many=True)
         return Response({"status": "success", "result": serializer.data})
+
 
 class TrainerDetailView(generics.GenericAPIView):
     serializer_class = TrainerSerializer
@@ -105,7 +128,8 @@ class TrainerDetailView(generics.GenericAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         serializer = self.serializer_class(object)
-        return Response({"status": "success", "result": serializer.data})    
+        return Response({"status": "success", "result": serializer.data})
+
 
 # TEAM VIEWS.
 class TeamListView(generics.GenericAPIView):
@@ -120,6 +144,7 @@ class TeamListView(generics.GenericAPIView):
             )
         serializer = self.serializer_class(objects, many=True)
         return Response({"status": "success", "result": serializer.data})
+
 
 class TeamDetailView(generics.GenericAPIView):
     serializer_class = TeamSerializer
@@ -138,9 +163,9 @@ class TeamDetailView(generics.GenericAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         serializer = self.serializer_class(object)
-        return Response({"status": "success", "result": serializer.data})  
-    
-    
+        return Response({"status": "success", "result": serializer.data})
+
+
 # SERVICE VIEWS.
 class ServiceListView(generics.GenericAPIView):
     serializer_class = ServiceSerializer
@@ -154,6 +179,7 @@ class ServiceListView(generics.GenericAPIView):
             )
         serializer = self.serializer_class(objects, many=True)
         return Response({"status": "success", "result": serializer.data})
+
 
 class ServiceDetailView(generics.GenericAPIView):
     serializer_class = ServiceSerializer
@@ -172,7 +198,8 @@ class ServiceDetailView(generics.GenericAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         serializer = self.serializer_class(object)
-        return Response({"status": "success", "result": serializer.data})  
+        return Response({"status": "success", "result": serializer.data})
+
 
 # FAQ VIEWS.
 class FaqListView(generics.GenericAPIView):
@@ -187,6 +214,7 @@ class FaqListView(generics.GenericAPIView):
             )
         serializer = self.serializer_class(objects, many=True)
         return Response({"status": "success", "result": serializer.data})
+
 
 class FaqDetailView(generics.GenericAPIView):
     serializer_class = FaqSerializer
@@ -205,7 +233,8 @@ class FaqDetailView(generics.GenericAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         serializer = self.serializer_class(object)
-        return Response({"status": "success", "result": serializer.data})  
+        return Response({"status": "success", "result": serializer.data})
+
 
 # CONTACT VIEWS.
 class ContactListView(generics.GenericAPIView):
@@ -220,6 +249,7 @@ class ContactListView(generics.GenericAPIView):
             )
         serializer = self.serializer_class(objects, many=True)
         return Response({"status": "success", "result": serializer.data})
+
 
 class ContactDetailView(generics.GenericAPIView):
     serializer_class = ContactSerializer
@@ -240,6 +270,7 @@ class ContactDetailView(generics.GenericAPIView):
         serializer = self.serializer_class(object)
         return Response({"status": "success", "result": serializer.data})
 
+
 # FOOTER VIEWS.
 class FooterListView(generics.GenericAPIView):
     serializer_class = FooterSerializer
@@ -253,6 +284,7 @@ class FooterListView(generics.GenericAPIView):
             )
         serializer = self.serializer_class(objects, many=True)
         return Response({"status": "success", "result": serializer.data})
+
 
 class FooterDetailView(generics.GenericAPIView):
     serializer_class = FooterSerializer
@@ -271,8 +303,9 @@ class FooterDetailView(generics.GenericAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         serializer = self.serializer_class(object)
-        return Response({"status": "success", "result": serializer.data}) 
-    
+        return Response({"status": "success", "result": serializer.data})
+
+
 # HOMEPAGE VIEWS.
 class HomepageListView(generics.GenericAPIView):
     serializer_class = HomepageSerializer

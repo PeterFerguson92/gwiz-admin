@@ -1,7 +1,9 @@
 import uuid
+
 from django.core.management.base import BaseCommand
-from homepage.models import Faq
 from django.utils.timezone import now
+
+from homepage.models import Faq
 
 FAQS = [
     {
@@ -23,8 +25,9 @@ FAQS = [
     {
         "question": "Can I train remotely?",
         "answer": "Yes! Our online coaching program includes personalized workouts, check-ins, and accountability — ideal if you're on the go or outside the city.",
-    }
+    },
 ]
+
 
 class Command(BaseCommand):
     help = "Seed initial FAQ entries for Flight School Chamber Gang"
@@ -36,8 +39,8 @@ class Command(BaseCommand):
                 defaults={
                     "id": uuid.uuid4(),
                     "answer": faq["answer"],
-                    "created_at": now()
-                }
+                    "created_at": now(),
+                },
             )
             if created:
                 self.stdout.write(self.style.SUCCESS(f"✔ Created: {obj.question}"))

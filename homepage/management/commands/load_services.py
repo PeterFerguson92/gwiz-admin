@@ -1,7 +1,9 @@
 import uuid
+
 from django.core.management.base import BaseCommand
-from homepage.models import Service
 from django.utils.timezone import now
+
+from homepage.models import Service
 
 SERVICES = [
     {
@@ -50,6 +52,7 @@ SERVICES = [
         "long_description": "Train with the Flight School Chamber Gang no matter where you are. Get remote coaching, weekly check-ins, customized plans, and access to our digital platform. Perfect for the self-driven athlete or traveler.",
     },
 ]
+
 
 class Command(BaseCommand):
     help = "Seed the database with Flight School Chamber Gang services"

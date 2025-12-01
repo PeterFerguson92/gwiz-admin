@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0023_faq_homepage_faq_description_homepage_faq_title_and_more'),
+        ("homepage", "0023_faq_homepage_faq_description_homepage_faq_title_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='homepage',
-            name='faq_title',
-            field=models.CharField(default='Our Faq', max_length=255, verbose_name='FAQ Title'),
+            model_name="homepage",
+            name="faq_title",
+            field=models.CharField(
+                default="Our Faq", max_length=255, verbose_name="FAQ Title"
+            ),
         ),
     ]

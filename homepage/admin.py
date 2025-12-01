@@ -1,7 +1,19 @@
-from django.utils.html import format_html
 from django.contrib import admin
+from django.utils.html import format_html
 from unfold.admin import ModelAdmin
-from homepage.models import AboutUs, Banner, Contact, Faq, Footer, Homepage, Service, Team, Trainer
+
+from homepage.models import (
+    AboutUs,
+    Banner,
+    Contact,
+    Faq,
+    Footer,
+    Homepage,
+    Service,
+    Team,
+    Trainer,
+)
+
 
 @admin.register(Banner)
 class BannerAdmin(ModelAdmin):
@@ -187,7 +199,8 @@ class ServiceAdmin(ModelAdmin):
         ("Media", {"fields": ("cover_image",)}),
         ("Metadata", {"fields": ("created_at",)}),
     ]
-    
+
+
 @admin.register(Faq)
 class FaqAdmin(ModelAdmin):
     list_display = ("question", "created_at")
@@ -205,29 +218,32 @@ class ContactAdmin(ModelAdmin):
     readonly_fields = ("created_at",)
 
     fieldsets = (
-        ("Content", {
-            "fields": (
-                "header",
-                "description",
-                "background_image",
-            )
-        }),
-        ("Contact Info", {
-            "fields": (
-                "phone",
-                "email",
-                "address",
-                "social",
-            )
-        }),
-        ("Integration", {
-            "fields": ("access_key",)
-        }),
-        ("Meta", {
-            "fields": ("created_at",)
-        }),
+        (
+            "Content",
+            {
+                "fields": (
+                    "header",
+                    "description",
+                    "background_image",
+                )
+            },
+        ),
+        (
+            "Contact Info",
+            {
+                "fields": (
+                    "phone",
+                    "email",
+                    "address",
+                    "social",
+                )
+            },
+        ),
+        ("Integration", {"fields": ("access_key",)}),
+        ("Meta", {"fields": ("created_at",)}),
     )
-    
+
+
 @admin.register(Footer)
 class FooterAdmin(ModelAdmin):
     list_display = ("slogan", "instagram_link", "tiktok_link", "created_at")
@@ -238,18 +254,10 @@ class FooterAdmin(ModelAdmin):
     readonly_fields = ("created_at",)
 
     fieldsets = (
-        ("Branding", {
-            "fields": ("logo", "slogan")
-        }),
-        ("Contact & Services", {
-            "fields": ("contact", "services")
-        }),
-        ("Social Media", {
-            "fields": ("instagram_link", "tiktok_link")
-        }),
-        ("Metadata", {
-            "fields": ("created_at",)
-        }),
+        ("Branding", {"fields": ("logo", "slogan")}),
+        ("Contact & Services", {"fields": ("contact", "services")}),
+        ("Social Media", {"fields": ("instagram_link", "tiktok_link")}),
+        ("Metadata", {"fields": ("created_at",)}),
     )
 
 
@@ -260,25 +268,24 @@ class HomepageAdmin(ModelAdmin):
     filter_horizontal = ("services", "faqs")  # 👈 enhances M2M selection
 
     fieldsets = [
-        ("Main Settings", {
-            "fields": ("title",)
-        }),
-        ("Content Blocks", {
-            "fields": (
-                "banner",
-                "about_us",
-                "service_title",
-                "service_description",
-                "services",
-                "faq_title",
-                "faq_description",
-                "faqs",
-                "contact"
-            )
-        }),
-        ("Metadata", {
-            "fields": ("created_at",)
-        }),
+        ("Main Settings", {"fields": ("title",)}),
+        (
+            "Content Blocks",
+            {
+                "fields": (
+                    "banner",
+                    "about_us",
+                    "service_title",
+                    "service_description",
+                    "services",
+                    "faq_title",
+                    "faq_description",
+                    "faqs",
+                    "contact",
+                )
+            },
+        ),
+        ("Metadata", {"fields": ("created_at",)}),
     ]
 
     def has_add_permission(self, request):
@@ -286,10 +293,10 @@ class HomepageAdmin(ModelAdmin):
 
     def changelist_view(self, request, extra_context=None):
         from django.shortcuts import redirect
+
         instance = Homepage.objects.first()
         if instance:
             return redirect(
                 f"/admin/{self.model._meta.app_label}/{self.model._meta.model_name}/{instance.id}/change/"
             )
         return super().changelist_view(request, extra_context)
-

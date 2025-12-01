@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0019_service'),
+        ("homepage", "0019_service"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='homepage',
-            name='services',
-            field=models.ManyToManyField(blank=True, to='homepage.service'),
+            model_name="homepage",
+            name="services",
+            field=models.ManyToManyField(blank=True, to="homepage.service"),
         ),
     ]

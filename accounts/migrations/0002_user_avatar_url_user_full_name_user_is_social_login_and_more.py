@@ -4,30 +4,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('accounts', '0001_initial'),
+        ("accounts", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='avatar_url',
+            model_name="user",
+            name="avatar_url",
             field=models.URLField(blank=True),
         ),
         migrations.AddField(
-            model_name='user',
-            name='full_name',
+            model_name="user",
+            name="full_name",
             field=models.CharField(blank=True, max_length=255),
         ),
         migrations.AddField(
-            model_name='user',
-            name='is_social_login',
+            model_name="user",
+            name="is_social_login",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='user',
-            name='provider',
-            field=models.CharField(blank=True, help_text='Authentication provider for social logins.', max_length=50),
+            model_name="user",
+            name="provider",
+            field=models.CharField(
+                blank=True,
+                help_text="Authentication provider for social logins.",
+                max_length=50,
+            ),
         ),
     ]

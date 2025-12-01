@@ -1,0 +1,420 @@
+{
+  "info": {
+    "name": "Fsxcg Auth API",
+    "_postman_id": "fsxcg-auth-api-collection",
+    "description": "Postman collection for Fsxcg authentication and account management API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Register",
+      "item": [
+        {
+          "name": "Register - Success",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice\",\n  \"surname\": \"Smith\",\n  \"email\": \"alice@example.com\",\n  \"phone_number\": \"+441234567890\",\n  \"password\": \"StrongPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register", ""]
+            }
+          }
+        },
+        {
+          "name": "Register - Duplicate Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice\",\n  \"surname\": \"Smith\",\n  \"email\": \"alice@example.com\",\n  \"phone_number\": \"+441234567890\",\n  \"password\": \"StrongPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register", ""]
+            }
+          }
+        },
+        {
+          "name": "Register - Invalid Phone",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice\",\n  \"surname\": \"Smith\",\n  \"email\": \"alice2@example.com\",\n  \"phone_number\": \"12 34 56\",\n  \"password\": \"StrongPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth - Email Login & Tokens",
+      "item": [
+        {
+          "name": "Login - Success",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"StrongPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/token/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "token", ""]
+            }
+          }
+        },
+        {
+          "name": "Login - Wrong Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"WrongPassword\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/token/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "token", ""]
+            }
+          }
+        },
+        {
+          "name": "Token Refresh - Success",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/token/refresh/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "token", "refresh", ""]
+            }
+          }
+        },
+        {
+          "name": "Token Refresh - Invalid",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"not-a-real-token\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/token/refresh/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "token", "refresh", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth - Google Login",
+      "item": [
+        {
+          "name": "Google Login - Success",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_token\": \"{{google_id_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/google/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "google", ""]
+            }
+          }
+        },
+        {
+          "name": "Google Login - Invalid Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_token\": \"invalid-token\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/google/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "google", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User - Profile (/me)",
+      "item": [
+        {
+          "name": "Me - Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me", ""]
+            }
+          }
+        },
+        {
+          "name": "Me - Get Profile (No Token)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me", ""]
+            }
+          }
+        },
+        {
+          "name": "Me - PATCH Profile (Normal User)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alicia\",\n  \"phone_number\": \"+44-1234-567-890\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/me/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me", ""]
+            }
+          }
+        },
+        {
+          "name": "Me - PATCH Profile (Invalid Phone)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"12 34 56\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/me/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me", ""]
+            }
+          }
+        },
+        {
+          "name": "Me - PUT Profile (Full Update)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice.new@example.com\",\n  \"name\": \"Alice\",\n  \"surname\": \"Jones\",\n  \"phone_number\": \"+441234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/me/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Password - Change",
+      "item": [
+        {
+          "name": "Change Password - Normal User (Success)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"CurrentPass123!\",\n  \"new_password\": \"NewStrongPass456!\",\n  \"confirm_password\": \"NewStrongPass456!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/password/change/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "password", "change", ""]
+            }
+          }
+        },
+        {
+          "name": "Change Password - Wrong Old Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"WrongPass\",\n  \"new_password\": \"NewStrongPass456!\",\n  \"confirm_password\": \"NewStrongPass456!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/password/change/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "password", "change", ""]
+            }
+          }
+        },
+        {
+          "name": "Change Password - Mismatched New Passwords",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"CurrentPass123!\",\n  \"new_password\": \"NewStrongPass456!\",\n  \"confirm_password\": \"Mismatch456!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/password/change/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "password", "change", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Password - Reset",
+      "item": [
+        {
+          "name": "Password Reset Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/password/reset/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "password", "reset", ""]
+            }
+          }
+        },
+        {
+          "name": "Password Reset Request - Non-existing Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"does-not-exist@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/password/reset/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "password", "reset", ""]
+            }
+          }
+        },
+        {
+          "name": "Password Reset Confirm - Success",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"<uid-from-email>\",\n  \"token\": \"<token-from-email>\",\n  \"new_password\": \"BrandNewPass123!\",\n  \"confirm_password\": \"BrandNewPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/password/reset/confirm/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "password", "reset", "confirm", ""]
+            }
+          }
+        },
+        {
+          "name": "Password Reset Confirm - Invalid Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"invalid\",\n  \"token\": \"invalid\",\n  \"new_password\": \"BrandNewPass123!\",\n  \"confirm_password\": \"BrandNewPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/password/reset/confirm/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "password", "reset", "confirm", ""]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "google_id_token", "value": "" }
+  ]
+}

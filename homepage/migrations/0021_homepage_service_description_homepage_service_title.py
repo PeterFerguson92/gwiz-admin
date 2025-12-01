@@ -4,20 +4,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0020_homepage_services'),
+        ("homepage", "0020_homepage_services"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='homepage',
-            name='service_description',
-            field=models.TextField(blank=True, null=True, verbose_name='Service Description'),
+            model_name="homepage",
+            name="service_description",
+            field=models.TextField(
+                blank=True, null=True, verbose_name="Service Description"
+            ),
         ),
         migrations.AddField(
-            model_name='homepage',
-            name='service_title',
-            field=models.CharField(default='Homepage', max_length=255, verbose_name='Service Title'),
+            model_name="homepage",
+            name="service_title",
+            field=models.CharField(
+                default="Homepage", max_length=255, verbose_name="Service Title"
+            ),
         ),
     ]

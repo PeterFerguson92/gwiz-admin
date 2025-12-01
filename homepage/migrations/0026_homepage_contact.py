@@ -5,15 +5,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0025_contact'),
+        ("homepage", "0025_contact"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='homepage',
-            name='contact',
-            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='homepage.contact'),
+            model_name="homepage",
+            name="contact",
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="homepage.contact",
+            ),
         ),
     ]

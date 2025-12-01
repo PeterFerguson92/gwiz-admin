@@ -5,7 +5,7 @@ from django.db import models
 class User(AbstractUser):
     # Make email required & unique for login
     email = models.EmailField(unique=True)
-    
+
     # Extra profile fields
     full_name = models.CharField(max_length=255, blank=True)
     avatar_url = models.URLField(blank=True)

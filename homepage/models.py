@@ -1,8 +1,9 @@
 # Create your models here.
 import uuid
+
 from django.contrib import admin
-from django_resized import ResizedImageField
 from django.db import models
+from django_resized import ResizedImageField
 from storages.backends.s3boto3 import S3Boto3Storage
 
 s3_storage = S3Boto3Storage()

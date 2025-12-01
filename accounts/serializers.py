@@ -1,21 +1,20 @@
 # accounts/serializers.py
 
-from django.core.mail import send_mail
-from django.urls import reverse
 from django.conf import settings
-from django.utils.text import slugify
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.utils.encoding import force_bytes, force_str
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.text import slugify
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from google.oauth2 import id_token as google_id_token
-from google.auth.transport import requests as google_requests
 
 User = get_user_model()
 
@@ -151,6 +150,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+
 # ---------------------------------------------------------
 # EMAIL LOGIN SERIALIZER
 # ---------------------------------------------------------
@@ -194,6 +194,7 @@ class EmailTokenObtainSerializer(TokenObtainPairSerializer):
         }
 
         return data
+
 
 # ---------------------------------------------------------
 # GOOGLE LOGIN SERIALIZER
@@ -290,6 +291,7 @@ class GoogleLoginSerializer(serializers.Serializer):
             },
         }
 
+
 # ---------------------------------------------------------
 # PROFILE UPDATE SERIALIZER
 # ---------------------------------------------------------
@@ -382,6 +384,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
 # ---------------------------------------------------------
 # CHANGE PASSWORD SERIALIZER
 # ---------------------------------------------------------
@@ -437,9 +440,11 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.save()
 
         return user
+
+
 # ---------------------------------------------------------
 # RESET PASSWORD SERIALIZERS
-# ---------------------------------------------------------    
+# ---------------------------------------------------------
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
@@ -508,7 +513,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
                   </p>
 
                   <p style="text-align:center; margin: 30px 0;">
-                    <a href="{reset_url}" 
+                    <a href="{reset_url}"
                        style="background-color:#007bff; color:white; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold;">
                       Reset Password
                     </a>
@@ -602,6 +607,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user.set_password(new_password)
         user.save()
         return user
+
 
 # ---------------------------------------------------------
 # DOCUMENTATION-ONLY SERIALIZERS

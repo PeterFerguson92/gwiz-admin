@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0013_alter_team_trainers'),
+        ("homepage", "0013_alter_team_trainers"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='team',
-            name='title',
-            field=models.CharField(default='Team', max_length=255, verbose_name='Title'),
+            model_name="team",
+            name="title",
+            field=models.CharField(
+                default="Team", max_length=255, verbose_name="Title"
+            ),
         ),
     ]

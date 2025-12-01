@@ -1,15 +1,10 @@
 # accounts/admin.py
 
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth import get_user_model
-
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from unfold.admin import ModelAdmin
-from unfold.forms import (
-    AdminPasswordChangeForm,
-    UserChangeForm,
-    UserCreationForm,
-)
+from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 
 User = get_user_model()
 

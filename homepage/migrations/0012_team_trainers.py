@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0011_team_trainer'),
+        ("homepage", "0011_team_trainer"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='team',
-            name='trainers',
-            field=models.ManyToManyField(blank=True, null=True, to='homepage.trainer'),
+            model_name="team",
+            name="trainers",
+            field=models.ManyToManyField(blank=True, null=True, to="homepage.trainer"),
         ),
     ]

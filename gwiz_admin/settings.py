@@ -1,6 +1,7 @@
-from datetime import timedelta
 import os
+from datetime import timedelta
 from pathlib import Path
+
 import environ
 
 env = environ.Env()
@@ -38,7 +39,7 @@ INSTALLED_APPS = [
     "homepage",
     "accounts",
     "drf_spectacular",
-    "drf_spectacular_sidecar", 
+    "drf_spectacular_sidecar",
 ]
 
 MIDDLEWARE = [
@@ -92,7 +93,7 @@ else:
             "PORT": env("PGPORT"),
         }
     }
-    
+
 AUTH_USER_MODEL = "accounts.User"
 
 
@@ -193,9 +194,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
@@ -216,7 +215,7 @@ GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID")
 # # Default: use console backend in development
 # if DEBUG:
 #     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-    
+
 # else:
 #     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
