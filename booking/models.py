@@ -178,5 +178,5 @@ class ClassSession(models.Model):
         return self.capacity_override or self.fitness_class.capacity
 
     @property
-    def price_effective(self):
+    def price_effective(self) -> int:
         return self.price_override or self.fitness_class.base_price

@@ -26,23 +26,21 @@ class FitnessClassSerializer(serializers.ModelSerializer):
 
 
 class ClassSessionSerializer(serializers.ModelSerializer):
-    fitness_class = FitnessClassSerializer(read_only=True)
-    capacity_effective = serializers.IntegerField(read_only=True)
-    price_effective = serializers.DecimalField(
-        max_digits=8, decimal_places=2, read_only=True
+    fitness_class_id = serializers.UUIDField(source="fitness_class.pk", read_only=True)
+    fitness_class_name = serializers.CharField(
+        source="fitness_class.name", read_only=True
     )
 
     class Meta:
         model = ClassSession
         fields = [
             "id",
-            "fitness_class",
+            "fitness_class_id",
+            "fitness_class_name",
             "date",
             "start_time",
             "end_time",
             "status",
             "capacity_override",
             "price_override",
-            "capacity_effective",
-            "price_effective",
         ]
