@@ -36,7 +36,7 @@ class RecurrenceRuleForm(forms.ModelForm):
         ("sun", "Sunday"),
     ]
 
-    # nice checkbox UI instead of raw JSON
+    # nice checkbox UI
     days_of_week = forms.MultipleChoiceField(
         choices=DAYS,
         widget=forms.CheckboxSelectMultiple,
@@ -56,13 +56,29 @@ class RecurrenceRuleForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # load JSON list into the MultipleChoiceField
         if self.instance and isinstance(self.instance.days_of_week, list):
             self.fields["days_of_week"].initial = self.instance.days_of_week
 
     def clean_days_of_week(self):
-        # save as simple list back to JSONField
-        return self.cleaned_data["days_of_week"]
+        return self.cleaned_data["days_of_week"] or []
+
+    def clean(self):
+        cleaned = super().clean()
+        rtype = cleaned.get("recurrence_type")
+        days = cleaned.get("days_of_week") or []
+
+        # For weekly / multiple days per week, require at least one day
+        if rtype in ("weekly", "multi_weekly") and not days:
+            self.add_error(
+                "days_of_week",
+                "Please select at least one day for a weekly recurrence.",
+            )
+
+        # For one-off / daily, clear days_of_week
+        if rtype in ("one_off", "daily"):
+            cleaned["days_of_week"] = []
+
+        return cleaned
 
 
 @admin.register(RecurrenceRule)
@@ -97,11 +113,14 @@ class RecurrenceRuleAdmin(admin.ModelAdmin):
         return custom_urls + urls
 
     def generate_sessions_view(self, request, object_id, *args, **kwargs):
+        """
+        Custom admin view that shows a confirmation screen,
+        then generates sessions for this rule.
+        """
         rule = get_object_or_404(RecurrenceRule, pk=object_id)
         from_date = date.today()
         to_date = from_date + timedelta(days=90)
 
-        # 🔍 Always compute a preview for the confirmation page
         preview_create, preview_skip = preview_sessions_for_rule(
             rule, from_date, to_date
         )

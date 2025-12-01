@@ -9,4 +9,39 @@
 		<span>{% trans 'Generate sessions' %}</span>
 	</a>
 </div>
-{% endif %} {{ block.super }} {% endblock %}
+{% endif %} {{ block.super }}
+
+<script>
+	(function () {
+		function updateDaysVisibility() {
+			var typeSelect = document.getElementById("id_recurrence_type");
+			var daysField = document.getElementById("id_days_of_week");
+			if (!typeSelect || !daysField) return;
+
+			var wrapper = daysField.closest("div"); // Unfold wraps field nicely
+			if (!wrapper) return;
+
+			var value = typeSelect.value;
+			var shouldShow = value === "weekly" || value === "multi_weekly";
+
+			wrapper.style.display = shouldShow ? "" : "none";
+
+			// If we hide it, also clear any checked boxes
+			if (!shouldShow) {
+				var checkboxes = wrapper.querySelectorAll('input[type="checkbox"]');
+				checkboxes.forEach(function (cb) {
+					cb.checked = false;
+				});
+			}
+		}
+
+		document.addEventListener("DOMContentLoaded", function () {
+			var typeSelect = document.getElementById("id_recurrence_type");
+			if (!typeSelect) return;
+
+			updateDaysVisibility();
+			typeSelect.addEventListener("change", updateDaysVisibility);
+		});
+	})();
+</script>
+{% endblock %}
