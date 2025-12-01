@@ -100,7 +100,7 @@ class UpcomingClassSessionListView(generics.ListAPIView):
         if from_date_str:
             qs = qs.filter(date__gte=from_date_str)
         else:
-            qs = qs.filter(date__gte=date.today())
+            qs = qs.filter(date__gte=datetime.date.today())
 
         if to_date_str:
             qs = qs.filter(date__lte=to_date_str)
@@ -147,3 +147,64 @@ class FitnessClassSessionsView(generics.ListAPIView):
             date__gte=today,
             status="scheduled",
         ).order_by("date", "start_time")
+
+
+@extend_schema(
+    tags=["Booking"],
+    parameters=[
+        OpenApiParameter(
+            "from_date",
+            OpenApiTypes.DATE,
+            description="Start date (YYYY-MM-DD). Defaults to today if omitted.",
+            required=False,
+        ),
+        OpenApiParameter(
+            "to_date",
+            OpenApiTypes.DATE,
+            description="End date (YYYY-MM-DD).",
+            required=False,
+        ),
+        OpenApiParameter(
+            "genre",
+            OpenApiTypes.STR,
+            description="Filter by fitness class genre.",
+            required=False,
+        ),
+    ],
+    responses=ClassSessionSerializer(many=True),
+)
+class AllUpcomingSessionsView(generics.ListAPIView):
+    """List all upcoming class sessions across every fitness class.
+
+    Supports the same filters as the single-class sessions endpoint:
+      - `from_date` (YYYY-MM-DD) optional, default = today
+      - `to_date`   (YYYY-MM-DD) optional
+      - `genre`     filter by FitnessClass.genre
+    """
+
+    serializer_class = ClassSessionSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        qs = ClassSession.objects.select_related("fitness_class").filter(
+            status="scheduled"
+        )
+
+        # Date filtering
+        from_date_str = self.request.query_params.get("from_date")
+        to_date_str = self.request.query_params.get("to_date")
+
+        if from_date_str:
+            qs = qs.filter(date__gte=from_date_str)
+        else:
+            qs = qs.filter(date__gte=datetime.date.today())
+
+        if to_date_str:
+            qs = qs.filter(date__lte=to_date_str)
+
+        # Genre filter
+        genre = self.request.query_params.get("genre")
+        if genre:
+            qs = qs.filter(fitness_class__genre=genre)
+
+        return qs.order_by("date", "start_time")
