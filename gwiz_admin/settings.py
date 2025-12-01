@@ -161,7 +161,7 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
 UNFOLD = {
     "SITE_TITLE": "Gwiz Admin",
     "SITE_HEADER": "Gwiz Dashboard",
-    "THEME": "auto",  # light / dark / auto
+    "THEME": "light",  # light / dark / auto
 }
 
 # DRF + JWT Settings

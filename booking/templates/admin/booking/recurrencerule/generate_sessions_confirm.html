@@ -1,0 +1,86 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+
+<h1 style="margin-bottom: 1rem;">⚠️ {% trans "Generate sessions" %}</h1>
+
+<p style="font-size: 1rem; margin-bottom: .5rem;">
+    {% trans "You are about to generate sessions for" %}
+    <strong>{{ rule.fitness_class.name }}</strong>
+    ({{ rule.recurrence_type }})
+</p>
+
+<p style="font-size: 1rem; margin-bottom: .75rem;">
+    {% trans "Date range:" %}
+    <strong>{{ from_date }}</strong>
+    →
+    <strong>{{ to_date }}</strong>
+</p>
+
+<p style="font-size: 0.95rem; color: #b91c1c; background:#fef2f2;
+          border:1px solid #fecaca; padding:.75rem 1rem; border-radius: .5rem;
+          display:flex; align-items:flex-start; gap:.5rem; margin-top:1rem;">
+    <span style="font-size:1.2rem;">⚠️</span>
+    <span>
+        {% if preview_create %}
+            This will create approximately
+            <strong>{{ preview_create }}</strong> new session{% if preview_create != 1 %}s{% endif %}
+            and leave <strong>{{ preview_skip }}</strong> existing session{% if preview_skip != 1 %}s{% endif %} unchanged.
+        {% else %}
+            No new sessions will be created in this date range. Existing sessions ({{ preview_skip }}) will be left unchanged.
+        {% endif %}
+        Please confirm that the dates and days of week are correct before continuing.
+    </span>
+</p>
+
+<form method="post" style="margin-top: 2rem;">
+    {% csrf_token %}
+
+    <div style="
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    ">
+        <button
+            type="submit"
+            class="button button-primary"
+            style="
+                padding: .7rem 1.6rem;
+                font-size: .95rem;
+                font-weight: 600;
+                border-radius: 999px;
+                display: inline-flex;
+                align-items: center;
+                gap: .4rem;
+                cursor: pointer;
+            "
+        >
+            <span>✅</span>
+            <span>{% trans "Confirm and generate sessions" %}</span>
+        </button>
+
+        <a
+            href="{% url 'admin:booking_recurrencerule_change' rule.pk %}"
+            class="button"
+            style="
+                padding: .7rem 1.6rem;
+                font-size: .95rem;
+                font-weight: 500;
+                border-radius: 999px;
+                background: #f3f4f6;
+                color: #374151;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: .4rem;
+                cursor: pointer;
+            "
+        >
+            <span>✖️</span>
+            <span>{% trans "Cancel" %}</span>
+        </a>
+    </div>
+</form>
+
+{% endblock %}
