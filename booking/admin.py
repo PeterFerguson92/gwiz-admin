@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 from django import forms
 from django.contrib import admin, messages
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
@@ -10,7 +10,7 @@ from django.urls import path, reverse
 
 from booking.services import generate_sessions_for_rule, preview_sessions_for_rule
 
-from .models import ClassSession, FitnessClass, RecurrenceRule
+from .models import Booking, ClassSession, FitnessClass, RecurrenceRule
 
 # ---------- FitnessClass ---------- #
 
@@ -168,6 +168,31 @@ class ClassSessionForm(forms.ModelForm):
         }
 
 
+class BookingInline(admin.TabularInline):
+    model = Booking
+    extra = 0
+    autocomplete_fields = ("user",)
+
+    # Replace "user" with our custom field
+    fields = (
+        "user_full_name",
+        "status",
+        "payment_status",
+        "attendance_status",
+        "created_at",
+    )
+
+    readonly_fields = ("user_full_name", "created_at")
+
+    def user_full_name(self, obj):
+        if obj.user:
+            full = obj.user.get_full_name()
+            return full if full else obj.user.email
+        return "—"
+
+    user_full_name.short_description = "User"
+
+
 @admin.register(ClassSession)
 class ClassSessionAdmin(admin.ModelAdmin):
     form = ClassSessionForm
@@ -179,10 +204,27 @@ class ClassSessionAdmin(admin.ModelAdmin):
         "formatted_date",
         "formatted_time",
         "status",
+        "effective_capacity",
+        "booked_count",
+        "remaining_spots",
     )
     list_filter = ("fitness_class", "status", "date")
     autocomplete_fields = ("fitness_class", "created_from_rule")
     ordering = ("fitness_class__name", "date", "start_time")
+    inlines = [BookingInline]
+
+    search_fields = ("fitness_class__name", "date", "start_time")
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Annotate number of active (booked) bookings for each session
+        qs = qs.annotate(
+            _booked_count=Count(
+                "bookings",
+                filter=Q(bookings__status=Booking.STATUS_BOOKED),
+            )
+        )
+        return qs
 
     def formatted_date(self, obj):
         return obj.date.strftime("%A, %d %b %Y")
@@ -195,6 +237,25 @@ class ClassSessionAdmin(admin.ModelAdmin):
         return f"{start} → {end}"
 
     formatted_time.short_description = "Time"
+
+    def effective_capacity(self, obj):
+        # Use the same logic as your model property
+        return obj.capacity_override or obj.fitness_class.capacity
+
+    effective_capacity.short_description = "Capacity"
+
+    def booked_count(self, obj):
+        # Use the annotated value when present; fall back to a query
+        if hasattr(obj, "_booked_count"):
+            return obj._booked_count
+        return obj.bookings.filter(status=Booking.STATUS_BOOKED).count()
+
+    booked_count.short_description = "Booked"
+
+    def remaining_spots(self, obj):
+        return self.effective_capacity(obj) - self.booked_count(obj)
+
+    remaining_spots.short_description = "Remaining"
 
     # --- custom URLs for grouped view --- #
 
@@ -263,3 +324,78 @@ class ClassSessionAdmin(admin.ModelAdmin):
             "admin/booking/classsession/grouped.html",
             context,
         )
+
+
+# ---------- Booking ---------- #
+
+
+@admin.register(Booking)
+class BookingAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user_full_name",
+        "fitness_class_name",
+        "class_date",
+        "class_time",
+        "status",
+        "payment_status",
+        "attendance_status",
+        "created_at",
+    )
+    list_filter = (
+        "status",
+        "payment_status",
+        "attendance_status",
+        "class_session__fitness_class",
+        "class_session__date",
+    )
+    search_fields = (
+        "id",
+        "user__email",
+        "user__first_name",
+        "user__last_name",
+        "class_session__fitness_class__name",
+    )
+    autocomplete_fields = ("user", "class_session")
+    date_hierarchy = "class_session__date"
+    readonly_fields = ("created_at", "updated_at")
+
+    fieldsets = (
+        (
+            "Booking",
+            {
+                "fields": (
+                    "user",
+                    "class_session",
+                    "status",
+                    "payment_status",
+                    "stripe_payment_intent_id",
+                    "attendance_status",
+                )
+            },
+        ),
+        (
+            "Timestamps",
+            {
+                "fields": ("created_at", "updated_at"),
+            },
+        ),
+    )
+
+    def user_full_name(self, obj):
+        # Prefer full name; fall back to email
+        full = obj.user.get_full_name()
+        return full if full else obj.user.email
+
+    user_full_name.short_description = "User"
+
+    def fitness_class_name(self, obj):
+        return obj.class_session.fitness_class.name
+
+    fitness_class_name.short_description = "Class"
+
+    def class_date(self, obj):
+        return obj.class_session.date
+
+    def class_time(self, obj):
+        return obj.class_session.start_time
