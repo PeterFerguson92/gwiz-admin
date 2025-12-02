@@ -1,9 +1,10 @@
+import csv
 from datetime import date, timedelta
 
 from django import forms
 from django.contrib import admin, messages
 from django.db.models import Count, Q
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
@@ -331,6 +332,10 @@ class ClassSessionAdmin(admin.ModelAdmin):
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
+    change_list_template = "admin/booking/booking/change_list.html"
+    actions_on_top = True
+    actions_on_bottom = True
+
     list_display = (
         "id",
         "user_full_name",
@@ -365,6 +370,7 @@ class BookingAdmin(admin.ModelAdmin):
         "mark_present",
         "mark_absent",
         "mark_no_show",
+        "export_attendance_csv",
     ]
 
     fieldsets = (
@@ -389,6 +395,8 @@ class BookingAdmin(admin.ModelAdmin):
         ),
     )
 
+    # ------- Display helpers -------
+
     def user_full_name(self, obj):
         # Prefer full name; fall back to email
         full = obj.user.get_full_name()
@@ -404,8 +412,14 @@ class BookingAdmin(admin.ModelAdmin):
     def class_date(self, obj):
         return obj.class_session.date
 
+    class_date.short_description = "Class date"
+
     def class_time(self, obj):
         return obj.class_session.start_time
+
+    class_time.short_description = "Class time"
+
+    # ------- Attendance actions -------
 
     def mark_present(self, request, queryset):
         updated = queryset.update(attendance_status=Booking.ATTENDANCE_PRESENT)
@@ -421,8 +435,77 @@ class BookingAdmin(admin.ModelAdmin):
 
     def mark_no_show(self, request, queryset):
         updated = queryset.update(
-            attendance_status=Booking.ATTENDANCE_NO_SHOW, status=Booking.STATUS_NO_SHOW
+            attendance_status=Booking.ATTENDANCE_NO_SHOW,
+            status=Booking.STATUS_NO_SHOW,
         )
         self.message_user(request, f"{updated} bookings marked as NO-SHOW.")
 
     mark_no_show.short_description = "Mark selected bookings as no-show"
+
+    # ------- Export attendance -------
+
+    def export_attendance_csv(self, request, queryset):
+        """
+        Export the selected bookings (typically for a single session)
+        as a CSV attendance report.
+        """
+        queryset = queryset.select_related(
+            "user",
+            "class_session",
+            "class_session__fitness_class",
+        )
+
+        # If the queryset is filtered to a single session, use that in filename
+        session_ids = queryset.values_list("class_session_id", flat=True).distinct()
+        if session_ids.count() == 1:
+            session_id = session_ids.first()
+            filename = f"attendance_session_{session_id}.csv"
+        else:
+            filename = "attendance_export.csv"
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        writer = csv.writer(response)
+        # Header row
+        writer.writerow(
+            [
+                "Booking ID",
+                "User name",
+                "User email",
+                "Class name",
+                "Session date",
+                "Start time",
+                "End time",
+                "Booking status",
+                "Attendance status",
+                "Payment status",
+                "Created at",
+            ]
+        )
+
+        for booking in queryset:
+            session = booking.class_session
+            user = booking.user
+
+            writer.writerow(
+                [
+                    str(booking.id),
+                    user.get_full_name() or "",
+                    user.email,
+                    session.fitness_class.name,
+                    session.date.isoformat(),
+                    session.start_time.strftime("%H:%M") if session.start_time else "",
+                    session.end_time.strftime("%H:%M") if session.end_time else "",
+                    booking.get_status_display(),
+                    booking.get_attendance_status_display(),
+                    booking.get_payment_status_display(),
+                    booking.created_at.isoformat(),
+                ]
+            )
+
+        return response
+
+    export_attendance_csv.short_description = (
+        "Export attendance (CSV) for selected bookings"
+    )

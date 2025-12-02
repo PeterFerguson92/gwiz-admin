@@ -1,0 +1,80 @@
+{% extends "admin/change_list.html" %}
+{% load admin_list %}
+
+{# Override the search row so it becomes: [search]  [our buttons] #}
+{% block search %}
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    "
+  >
+    <div style="flex: 1 1 260px;">
+      {# default Django search form #}
+      {% search_form cl %}
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+      <a
+        href="#"
+        onclick="runAttendanceAction('mark_present'); return false;"
+        class="button"
+        style="padding: 0.35rem 0.8rem; font-size: 0.85rem;"
+      >
+        Mark all present
+      </a>
+
+      <a
+        href="#"
+        onclick="runAttendanceAction('mark_absent'); return false;"
+        class="button"
+        style="padding: 0.35rem 0.8rem; font-size: 0.85rem;"
+      >
+        Mark all absent
+      </a>
+
+      <a
+        href="#"
+        onclick="runAttendanceAction('mark_no_show'); return false;"
+        class="button"
+        style="padding: 0.35rem 0.8rem; font-size: 0.85rem;"
+      >
+        Mark all no-show
+      </a>
+
+      <a
+        href="#"
+        onclick="runAttendanceAction('export_attendance_csv'); return false;"
+        class="button"
+        style="padding: 0.35rem 0.8rem; font-size: 0.85rem;"
+      >
+        Export CSV
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script>
+    function runAttendanceAction(actionName) {
+      const form = document.getElementById("changelist-form");
+      if (!form) return;
+
+      const actionSelect = form.querySelector('select[name="action"]');
+      if (!actionSelect) return;
+
+      // select all visible rows on this page
+      form.querySelectorAll('input.action-select').forEach(cb => {
+        cb.checked = true;
+      });
+
+      actionSelect.value = actionName;
+      form.submit();
+    }
+  </script>
+{% endblock %}
