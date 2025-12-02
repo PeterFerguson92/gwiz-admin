@@ -1,0 +1,19 @@
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem">
+	<div style="flex: 1 1 260px">{% search_form cl %}</div>
+
+	<div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center">
+		<span style="color: #6b7280; font-size: 0.85rem">
+			Exporting:
+			<strong>{{ export_month|date:"F" }} {{ export_year }}</strong>
+		</span>
+
+		<a href="#" onclick="runAttendanceAction('mark_present'); return false;" class="button" style="padding: 0.35rem 0.8rem; font-size: 0.85rem"> Mark all present </a>
+
+		<a href="#" onclick="runAttendanceAction('mark_absent'); return false;" class="button" style="padding: 0.35rem 0.8rem; font-size: 0.85rem"> Mark all absent </a>
+
+		<a href="#" onclick="runAttendanceAction('mark_no_show'); return false;" class="button" style="padding: 0.35rem 0.8rem; font-size: 0.85rem"> Mark all no-show </a>
+
+		{% url 'admin:booking_booking_monthly_report' as monthly_report_url %}
+		<a href="{{ monthly_report_url }}?{{ request.GET.urlencode }}" class="button" style="padding: 0.35rem 0.8rem; font-size: 0.85rem"> Export Month CSV </a>
+	</div>
+</div>

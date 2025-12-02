@@ -330,11 +330,22 @@ class ClassSessionAdmin(admin.ModelAdmin):
 # ---------- Booking ---------- #
 
 
+import csv
+from datetime import date
+
+from django.contrib import admin, messages
+from django.http import HttpResponse
+from django.urls import path
+
+from .models import Booking
+
+
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
+    # Use our custom changelist (with buttons next to the search bar)
     change_list_template = "admin/booking/booking/change_list.html"
-    actions_on_top = True
-    actions_on_bottom = True
+
+    # ---------- List view configuration ----------
 
     list_display = (
         "id",
@@ -347,6 +358,7 @@ class BookingAdmin(admin.ModelAdmin):
         "attendance_status",
         "created_at",
     )
+
     list_filter = (
         "status",
         "payment_status",
@@ -354,6 +366,7 @@ class BookingAdmin(admin.ModelAdmin):
         "class_session__fitness_class",
         "class_session__date",
     )
+
     search_fields = (
         "id",
         "user__email",
@@ -361,11 +374,342 @@ class BookingAdmin(admin.ModelAdmin):
         "user__last_name",
         "class_session__fitness_class__name",
     )
+
     autocomplete_fields = ("user", "class_session")
     date_hierarchy = "class_session__date"
     readonly_fields = ("created_at", "updated_at")
     list_editable = ("attendance_status",)
 
+    actions = [
+        "mark_present",
+        "mark_absent",
+        "mark_no_show",
+        "export_attendance_csv",  # export *selected* rows
+    ]
+
+    fieldsets = (
+        (
+            "Booking",
+            {
+                "fields": (
+                    "user",
+                    "class_session",
+                    "status",
+                    "payment_status",
+                    "stripe_payment_intent_id",
+                    "attendance_status",
+                )
+            },
+        ),
+        (
+            "Timestamps",
+            {"fields": ("created_at", "updated_at")},
+        ),
+    )
+
+    # ---------- Custom admin URLs (month + session export) ----------
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "monthly-attendance-report/",
+                self.admin_site.admin_view(self.monthly_attendance_report),
+                name="booking_booking_monthly_report",
+            ),
+            path(
+                "session-attendance-report/",
+                self.admin_site.admin_view(self.session_attendance_report),
+                name="booking_booking_session_report",
+            ),
+        ]
+        return custom_urls + urls
+
+    # ---------- MONTH EXPORT ----------
+
+    def monthly_attendance_report(self, request):
+        """
+        Export a full-month attendance CSV.
+
+        - Uses all current filters (status, class, attendance, search).
+        - Month/year taken from date_hierarchy query params if present.
+        - Otherwise defaults to the *current* month.
+        """
+        qs = self.get_queryset(request).select_related(
+            "user", "class_session", "class_session__fitness_class"
+        )
+
+        year_param = request.GET.get("class_session__date__year")
+        month_param = request.GET.get("class_session__date__month")
+
+        if year_param and month_param:
+            year = int(year_param)
+            month = int(month_param)
+        else:
+            today = date.today()
+            year, month = today.year, today.month
+
+        qs = qs.filter(
+            class_session__date__year=year,
+            class_session__date__month=month,
+        )
+
+        filename = f"attendance_{year}_{month:02d}.csv"
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                "Booking ID",
+                "User name",
+                "User email",
+                "Class name",
+                "Session date",
+                "Start time",
+                "End time",
+                "Booking status",
+                "Attendance status",
+                "Payment status",
+                "Created at",
+            ]
+        )
+
+        for booking in qs:
+            s = booking.class_session
+            u = booking.user
+            writer.writerow(
+                [
+                    str(booking.id),
+                    u.get_full_name() or "",
+                    u.email,
+                    s.fitness_class.name,
+                    s.date.isoformat(),
+                    s.start_time.strftime("%H:%M") if s.start_time else "",
+                    s.end_time.strftime("%H:%M") if s.end_time else "",
+                    booking.get_status_display(),
+                    booking.get_attendance_status_display(),
+                    booking.get_payment_status_display(),
+                    booking.created_at.isoformat(),
+                ]
+            )
+
+        return response
+
+    # ---------- SESSION EXPORT ----------
+
+    def session_attendance_report(self, request):
+        """
+        Export attendance for a SINGLE class_session.
+
+        Expects ?class_session__id__exact=<session_id> in the querystring.
+        Still respects any other filters (status, attendance, etc.).
+        """
+        session_id = request.GET.get("class_session__id__exact")
+        if not session_id:
+            messages.warning(
+                request,
+                "No specific session selected – exporting current month instead.",
+            )
+            return self.monthly_attendance_report(request)
+
+        qs = (
+            self.get_queryset(request)
+            .select_related("user", "class_session", "class_session__fitness_class")
+            .filter(class_session_id=session_id)
+        )
+
+        filename = f"attendance_session_{session_id}.csv"
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                "Booking ID",
+                "User name",
+                "User email",
+                "Class name",
+                "Session date",
+                "Start time",
+                "End time",
+                "Booking status",
+                "Attendance status",
+                "Payment status",
+                "Created at",
+            ]
+        )
+
+        for booking in qs:
+            s = booking.class_session
+            u = booking.user
+            writer.writerow(
+                [
+                    str(booking.id),
+                    u.get_full_name() or "",
+                    u.email,
+                    s.fitness_class.name,
+                    s.date.isoformat(),
+                    s.start_time.strftime("%H:%M") if s.start_time else "",
+                    s.end_time.strftime("%H:%M") if s.end_time else "",
+                    booking.get_status_display(),
+                    booking.get_attendance_status_display(),
+                    booking.get_payment_status_display(),
+                    booking.created_at.isoformat(),
+                ]
+            )
+
+        return response
+
+    # ---------- Bulk attendance actions (used by buttons) ----------
+
+    def mark_present(self, request, queryset):
+        updated = queryset.update(attendance_status=Booking.ATTENDANCE_PRESENT)
+        self.message_user(request, f"{updated} bookings marked PRESENT.")
+
+    mark_present.short_description = "Mark selected bookings as present"
+
+    def mark_absent(self, request, queryset):
+        updated = queryset.update(attendance_status=Booking.ATTENDANCE_ABSENT)
+        self.message_user(request, f"{updated} bookings marked ABSENT.")
+
+    mark_absent.short_description = "Mark selected bookings as absent"
+
+    def mark_no_show(self, request, queryset):
+        updated = queryset.update(
+            attendance_status=Booking.ATTENDANCE_NO_SHOW,
+            status=Booking.STATUS_NO_SHOW,
+        )
+        self.message_user(request, f"{updated} bookings marked NO-SHOW.")
+
+    mark_no_show.short_description = "Mark selected bookings as no-show"
+
+    # ---------- Export selected rows (ad-hoc slice) ----------
+
+    def export_attendance_csv(self, request, queryset):
+        """
+        Export ONLY the selected bookings (whatever you’ve filtered/checked).
+        """
+        queryset = queryset.select_related(
+            "user", "class_session", "class_session__fitness_class"
+        )
+
+        session_ids = queryset.values_list("class_session_id", flat=True).distinct()
+        if session_ids.count() == 1:
+            filename = f"attendance_session_{session_ids.first()}.csv"
+        else:
+            filename = "attendance_export.csv"
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                "Booking ID",
+                "User name",
+                "User email",
+                "Class name",
+                "Session date",
+                "Start time",
+                "End time",
+                "Booking status",
+                "Attendance status",
+                "Payment status",
+                "Created at",
+            ]
+        )
+
+        for booking in queryset:
+            s = booking.class_session
+            u = booking.user
+            writer.writerow(
+                [
+                    str(booking.id),
+                    u.get_full_name() or "",
+                    u.email,
+                    s.fitness_class.name,
+                    s.date.isoformat(),
+                    s.start_time.strftime("%H:%M") if s.start_time else "",
+                    s.end_time.strftime("%H:%M") if s.end_time else "",
+                    booking.get_status_display(),
+                    booking.get_attendance_status_display(),
+                    booking.get_payment_status_display(),
+                    booking.created_at.isoformat(),
+                ]
+            )
+
+        return response
+
+    export_attendance_csv.short_description = (
+        "Export attendance (CSV) for selected bookings"
+    )
+
+    # ---------- UI helpers ----------
+
+    def user_full_name(self, obj):
+        return obj.user.get_full_name() or obj.user.email
+
+    user_full_name.short_description = "User full name"
+
+    def fitness_class_name(self, obj):
+        return obj.class_session.fitness_class.name
+
+    fitness_class_name.short_description = "Fitness class name"
+
+    def class_date(self, obj):
+        return obj.class_session.date
+
+    class_date.short_description = "Class date"
+
+    def class_time(self, obj):
+        return obj.class_session.start_time
+
+    class_time.short_description = "Class time"
+
+    # Attach our custom change list with buttons near search bar
+    change_list_template = "admin/booking/booking/change_list.html"
+
+    # We trigger actions via buttons, not Django's default bars
+    actions_on_top = False
+    actions_on_bottom = False
+
+    # ---------- List view configuration ----------
+
+    list_display = (
+        "id",
+        "user_full_name",
+        "fitness_class_name",
+        "class_date",
+        "class_time",
+        "status",
+        "payment_status",
+        "attendance_status",
+        "created_at",
+    )
+
+    list_filter = (
+        "status",
+        "payment_status",
+        "attendance_status",
+        "class_session__fitness_class",
+        "class_session__date",
+    )
+
+    search_fields = (
+        "id",
+        "user__email",
+        "user__first_name",
+        "user__last_name",
+        "class_session__fitness_class__name",
+    )
+
+    autocomplete_fields = ("user", "class_session")
+    date_hierarchy = "class_session__date"
+    readonly_fields = ("created_at", "updated_at")
+    list_editable = ("attendance_status",)
+
+    # These actions remain usable programmatically
     actions = [
         "mark_present",
         "mark_absent",
@@ -389,47 +733,112 @@ class BookingAdmin(admin.ModelAdmin):
         ),
         (
             "Timestamps",
-            {
-                "fields": ("created_at", "updated_at"),
-            },
+            {"fields": ("created_at", "updated_at")},
         ),
     )
 
-    # ------- Display helpers -------
+    # ---------- Custom admin URL for monthly CSV ----------
 
-    def user_full_name(self, obj):
-        # Prefer full name; fall back to email
-        full = obj.user.get_full_name()
-        return full if full else obj.user.email
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "monthly-attendance-report/",
+                self.admin_site.admin_view(self.monthly_attendance_report),
+                name="booking_booking_monthly_report",
+            ),
+            path(
+                "session-attendance-report/",
+                self.admin_site.admin_view(self.session_attendance_report),
+                name="booking_booking_session_report",
+            ),
+        ]
+        return custom_urls + urls
 
-    user_full_name.short_description = "User"
+    # ---------- MONTHLY REPORT (safe timezone logic) ----------
 
-    def fitness_class_name(self, obj):
-        return obj.class_session.fitness_class.name
+    def monthly_attendance_report(self, request):
+        """
+        Export a full-month attendance CSV. Uses:
+        - existing filters (status, class, attendance, etc.)
+        - month/year from the date hierarchy (if present)
+        - otherwise defaults to current month using date.today() (timezone-safe)
+        """
+        qs = self.get_queryset(request).select_related(
+            "user", "class_session", "class_session__fitness_class"
+        )
 
-    fitness_class_name.short_description = "Class"
+        year_param = request.GET.get("class_session__date__year")
+        month_param = request.GET.get("class_session__date__month")
 
-    def class_date(self, obj):
-        return obj.class_session.date
+        if year_param and month_param:
+            year = int(year_param)
+            month = int(month_param)
+        else:
+            # SAFE — no timezone issues here
+            today = date.today()
+            year, month = today.year, today.month
 
-    class_date.short_description = "Class date"
+        # Filter by the chosen month
+        qs = qs.filter(
+            class_session__date__year=year,
+            class_session__date__month=month,
+        )
 
-    def class_time(self, obj):
-        return obj.class_session.start_time
+        filename = f"attendance_{year}_{month:02d}.csv"
 
-    class_time.short_description = "Class time"
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
-    # ------- Attendance actions -------
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                "Booking ID",
+                "User name",
+                "User email",
+                "Class name",
+                "Session date",
+                "Start time",
+                "End time",
+                "Booking status",
+                "Attendance status",
+                "Payment status",
+                "Created at",
+            ]
+        )
+
+        for booking in qs:
+            s = booking.class_session
+            u = booking.user
+            writer.writerow(
+                [
+                    str(booking.id),
+                    u.get_full_name() or "",
+                    u.email,
+                    s.fitness_class.name,
+                    s.date.isoformat(),
+                    s.start_time.strftime("%H:%M") if s.start_time else "",
+                    s.end_time.strftime("%H:%M") if s.end_time else "",
+                    booking.get_status_display(),
+                    booking.get_attendance_status_display(),
+                    booking.get_payment_status_display(),
+                    booking.created_at.isoformat(),
+                ]
+            )
+
+        return response
+
+    # ---------- Attendance Inline Actions ----------
 
     def mark_present(self, request, queryset):
         updated = queryset.update(attendance_status=Booking.ATTENDANCE_PRESENT)
-        self.message_user(request, f"{updated} bookings marked as PRESENT.")
+        self.message_user(request, f"{updated} bookings marked PRESENT.")
 
     mark_present.short_description = "Mark selected bookings as present"
 
     def mark_absent(self, request, queryset):
         updated = queryset.update(attendance_status=Booking.ATTENDANCE_ABSENT)
-        self.message_user(request, f"{updated} bookings marked as ABSENT.")
+        self.message_user(request, f"{updated} bookings marked ABSENT.")
 
     mark_absent.short_description = "Mark selected bookings as absent"
 
@@ -438,28 +847,20 @@ class BookingAdmin(admin.ModelAdmin):
             attendance_status=Booking.ATTENDANCE_NO_SHOW,
             status=Booking.STATUS_NO_SHOW,
         )
-        self.message_user(request, f"{updated} bookings marked as NO-SHOW.")
+        self.message_user(request, f"{updated} bookings marked NO-SHOW.")
 
     mark_no_show.short_description = "Mark selected bookings as no-show"
 
-    # ------- Export attendance -------
+    # ---------- Export selected rows (existing) ----------
 
     def export_attendance_csv(self, request, queryset):
-        """
-        Export the selected bookings (typically for a single session)
-        as a CSV attendance report.
-        """
         queryset = queryset.select_related(
-            "user",
-            "class_session",
-            "class_session__fitness_class",
+            "user", "class_session", "class_session__fitness_class"
         )
 
-        # If the queryset is filtered to a single session, use that in filename
         session_ids = queryset.values_list("class_session_id", flat=True).distinct()
         if session_ids.count() == 1:
-            session_id = session_ids.first()
-            filename = f"attendance_session_{session_id}.csv"
+            filename = f"attendance_session_{session_ids.first()}.csv"
         else:
             filename = "attendance_export.csv"
 
@@ -467,7 +868,6 @@ class BookingAdmin(admin.ModelAdmin):
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
         writer = csv.writer(response)
-        # Header row
         writer.writerow(
             [
                 "Booking ID",
@@ -485,18 +885,17 @@ class BookingAdmin(admin.ModelAdmin):
         )
 
         for booking in queryset:
-            session = booking.class_session
-            user = booking.user
-
+            s = booking.class_session
+            u = booking.user
             writer.writerow(
                 [
                     str(booking.id),
-                    user.get_full_name() or "",
-                    user.email,
-                    session.fitness_class.name,
-                    session.date.isoformat(),
-                    session.start_time.strftime("%H:%M") if session.start_time else "",
-                    session.end_time.strftime("%H:%M") if session.end_time else "",
+                    u.get_full_name() or "",
+                    u.email,
+                    s.fitness_class.name,
+                    s.date.isoformat(),
+                    s.start_time.strftime("%H:%M") if s.start_time else "",
+                    s.end_time.strftime("%H:%M") if s.end_time else "",
                     booking.get_status_display(),
                     booking.get_attendance_status_display(),
                     booking.get_payment_status_display(),
@@ -509,3 +908,81 @@ class BookingAdmin(admin.ModelAdmin):
     export_attendance_csv.short_description = (
         "Export attendance (CSV) for selected bookings"
     )
+
+    def session_attendance_report(self, request):
+        """
+        Export attendance for a SINGLE class_session.
+
+        It expects ?class_session__id__exact=<session_id> in the querystring,
+        and still respects any other filters (status, attendance, etc.).
+        """
+        session_id = request.GET.get("class_session__id__exact")
+        if not session_id:
+            messages.warning(
+                request,
+                "No specific session selected – exporting current month instead.",
+            )
+            return self.monthly_attendance_report(request)
+
+        # base queryset respects current filters (status, attendance, etc.)
+        qs = (
+            self.get_queryset(request)
+            .select_related("user", "class_session", "class_session__fitness_class")
+            .filter(class_session_id=session_id)
+        )
+
+        filename = f"attendance_session_{session_id}.csv"
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                "Booking ID",
+                "User name",
+                "User email",
+                "Class name",
+                "Session date",
+                "Start time",
+                "End time",
+                "Booking status",
+                "Attendance status",
+                "Payment status",
+                "Created at",
+            ]
+        )
+
+        for booking in qs:
+            s = booking.class_session
+            u = booking.user
+            writer.writerow(
+                [
+                    str(booking.id),
+                    u.get_full_name() or "",
+                    u.email,
+                    s.fitness_class.name,
+                    s.date.isoformat(),
+                    s.start_time.strftime("%H:%M") if s.start_time else "",
+                    s.end_time.strftime("%H:%M") if s.end_time else "",
+                    booking.get_status_display(),
+                    booking.get_attendance_status_display(),
+                    booking.get_payment_status_display(),
+                    booking.created_at.isoformat(),
+                ]
+            )
+
+        return response
+
+    # ---------- UI helper methods ----------
+
+    def user_full_name(self, obj):
+        return obj.user.get_full_name() or obj.user.email
+
+    def fitness_class_name(self, obj):
+        return obj.class_session.fitness_class.name
+
+    def class_date(self, obj):
+        return obj.class_session.date
+
+    def class_time(self, obj):
+        return obj.class_session.start_time
