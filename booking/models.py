@@ -1,10 +1,12 @@
 import uuid
 
 from django.db import models
+from django.db.models import Q  # make sure this import exists at the top
 from django_resized import ResizedImageField
 from storages.backends.s3boto3 import S3Boto3Storage
 
 from booking.upload import fitness_class_cover_upload_image_path
+from gwiz_admin import settings
 from homepage.models import Trainer
 
 s3_storage = S3Boto3Storage()
@@ -180,3 +182,117 @@ class ClassSession(models.Model):
     @property
     def price_effective(self) -> int:
         return self.price_override or self.fitness_class.base_price
+
+
+class Booking(models.Model):
+    """
+    A user's booking for a specific ClassSession.
+    Handles membership-included bookings, PAYG bookings (via Stripe),
+    and basic attendance tracking.
+    """
+
+    # --- Status choices ---
+    STATUS_BOOKED = "booked"
+    STATUS_CANCELLED = "cancelled"
+    STATUS_NO_SHOW = "no_show"
+
+    STATUS_CHOICES = [
+        (STATUS_BOOKED, "Booked"),
+        (STATUS_CANCELLED, "Cancelled"),
+        (STATUS_NO_SHOW, "No-show"),
+    ]
+
+    # --- Payment status choices ---
+    PAYMENT_INCLUDED = "included"  # covered by membership / credits
+    PAYMENT_PENDING = "pending"  # awaiting Stripe payment
+    PAYMENT_PAID = "paid"  # Stripe payment completed
+
+    PAYMENT_STATUS_CHOICES = [
+        (PAYMENT_INCLUDED, "Included in membership"),
+        (PAYMENT_PENDING, "Pending payment"),
+        (PAYMENT_PAID, "Paid"),
+    ]
+
+    # --- Attendance choices ---
+    ATTENDANCE_UNKNOWN = "unknown"
+    ATTENDANCE_CHECKED_IN = "checked_in"
+    ATTENDANCE_NO_SHOW = "no_show"
+
+    ATTENDANCE_CHOICES = [
+        (ATTENDANCE_UNKNOWN, "Unknown"),
+        (ATTENDANCE_CHECKED_IN, "Checked-in"),
+        (ATTENDANCE_NO_SHOW, "No-show"),
+    ]
+
+    # --- Fields ---
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="bookings",
+        on_delete=models.CASCADE,
+    )
+
+    class_session = models.ForeignKey(
+        "booking.ClassSession",
+        related_name="bookings",
+        on_delete=models.CASCADE,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_BOOKED,
+    )
+
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PAYMENT_STATUS_CHOICES,
+        default=PAYMENT_INCLUDED,
+    )
+
+    stripe_payment_intent_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Stripe PaymentIntent ID for PAYG bookings.",
+    )
+
+    attendance_status = models.CharField(
+        max_length=20,
+        choices=ATTENDANCE_CHOICES,
+        default=ATTENDANCE_UNKNOWN,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # --- Meta / constraints ---
+    class Meta:
+        # You can’t have two *active* bookings for the same session
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "class_session"],
+                condition=Q(status="booked"),
+                name="unique_active_booking_per_session",
+            )
+        ]
+        ordering = ("-created_at",)
+
+    # --- Helpers ---
+    def __str__(self) -> str:
+        return f"{self.user} → {self.class_session} ({self.status})"
+
+    @property
+    def is_active(self) -> bool:
+        return self.status == self.STATUS_BOOKED
+
+    @property
+    def is_included(self) -> bool:
+        """True if this booking was covered by membership/credits."""
+        return self.payment_status == self.PAYMENT_INCLUDED
+
+    @property
+    def is_paid(self) -> bool:
+        """True if payment has been completed (membership or Stripe)."""
+        return self.payment_status in {self.PAYMENT_INCLUDED, self.PAYMENT_PAID}

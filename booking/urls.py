@@ -3,8 +3,11 @@ from django.urls import path
 from .views import (
     ActiveFitnessClassListView,
     AllUpcomingSessionsView,
+    BookSessionView,
+    CancelBookingView,
     FitnessClassListView,
     FitnessClassSessionsView,
+    MyBookingsListView,
     UpcomingClassSessionListView,
 )
 
@@ -29,5 +32,20 @@ urlpatterns = [
         "fitness-classes/<uuid:pk>/sessions/",
         FitnessClassSessionsView.as_view(),
         name="fitness-class-sessions",
+    ),
+    path(
+        "sessions/<uuid:session_id>/book/",
+        BookSessionView.as_view(),
+        name="book-session",
+    ),
+    path(
+        "bookings/<uuid:booking_id>/cancel/",
+        CancelBookingView.as_view(),
+        name="cancel-booking",
+    ),
+    path(
+        "my-bookings/",
+        MyBookingsListView.as_view(),
+        name="my-bookings",
     ),
 ]
