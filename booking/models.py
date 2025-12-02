@@ -206,11 +206,13 @@ class Booking(models.Model):
     PAYMENT_INCLUDED = "included"  # covered by membership / credits
     PAYMENT_PENDING = "pending"  # awaiting Stripe payment
     PAYMENT_PAID = "paid"  # Stripe payment completed
+    PAYMENT_VOID = "void"  # added for cancelled pending payments
 
     PAYMENT_STATUS_CHOICES = [
         (PAYMENT_INCLUDED, "Included in membership"),
         (PAYMENT_PENDING, "Pending payment"),
         (PAYMENT_PAID, "Paid"),
+        (PAYMENT_VOID, "Voided/No payment due"),
     ]
 
     # --- Attendance choices ---

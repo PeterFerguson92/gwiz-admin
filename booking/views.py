@@ -481,6 +481,9 @@ class CancelBookingView(APIView):
 
         # Mark booking cancelled
         booking.status = Booking.STATUS_CANCELLED
+        if booking.payment_status == Booking.PAYMENT_PENDING:
+            booking.payment_status = Booking.PAYMENT_VOID
+
         booking.save(update_fields=["status", "updated_at"])
 
         # Restore credit if it was included in membership
