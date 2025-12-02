@@ -172,12 +172,13 @@
                 <th style="text-align:left; padding: 0.4rem 0.6rem;">Date</th>
                 <th style="text-align:left; padding: 0.4rem 0.6rem;">Time</th>
                 <th style="text-align:left; padding: 0.4rem 0.6rem;">Status</th>
-                <th style="text-align:left; padding: 0.4rem 0.6rem;">Bookings</th>
+                <th style="text-align:left; padding: 0.4rem 0.6rem;">Bookings / Attendance</th>
               </tr>
             </thead>
             <tbody>
               {% for s in sessions %}
                 {% url 'admin:booking_classsession_change' s.pk as session_change_url %}
+                {% url 'admin:booking_booking_changelist' as booking_changelist_url %}
                 <tr
                   style="cursor: pointer;"
                   onclick="window.location.href='{{ session_change_url }}';"
@@ -253,7 +254,7 @@
                   </td>
                   <td style="padding: 0.35rem 0.6rem;">
                     <a
-                      href="/admin/booking/booking/?session={{ s.pk }}"
+                      href="{{ booking_changelist_url }}?class_session__id__exact={{ s.pk }}"
                       class="button"
                       style="
                         padding: 0.25rem 0.7rem;
@@ -265,7 +266,7 @@
                       "
                       onclick="event.stopPropagation();"
                     >
-                      View bookings
+                      View bookings &amp; attendance
                     </a>
                   </td>
                 </tr>

@@ -359,6 +359,13 @@ class BookingAdmin(admin.ModelAdmin):
     autocomplete_fields = ("user", "class_session")
     date_hierarchy = "class_session__date"
     readonly_fields = ("created_at", "updated_at")
+    list_editable = ("attendance_status",)
+
+    actions = [
+        "mark_present",
+        "mark_absent",
+        "mark_no_show",
+    ]
 
     fieldsets = (
         (
@@ -399,3 +406,23 @@ class BookingAdmin(admin.ModelAdmin):
 
     def class_time(self, obj):
         return obj.class_session.start_time
+
+    def mark_present(self, request, queryset):
+        updated = queryset.update(attendance_status=Booking.ATTENDANCE_PRESENT)
+        self.message_user(request, f"{updated} bookings marked as PRESENT.")
+
+    mark_present.short_description = "Mark selected bookings as present"
+
+    def mark_absent(self, request, queryset):
+        updated = queryset.update(attendance_status=Booking.ATTENDANCE_ABSENT)
+        self.message_user(request, f"{updated} bookings marked as ABSENT.")
+
+    mark_absent.short_description = "Mark selected bookings as absent"
+
+    def mark_no_show(self, request, queryset):
+        updated = queryset.update(
+            attendance_status=Booking.ATTENDANCE_NO_SHOW, status=Booking.STATUS_NO_SHOW
+        )
+        self.message_user(request, f"{updated} bookings marked as NO-SHOW.")
+
+    mark_no_show.short_description = "Mark selected bookings as no-show"

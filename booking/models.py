@@ -188,7 +188,7 @@ class Booking(models.Model):
     """
     A user's booking for a specific ClassSession.
     Handles membership-included bookings, PAYG bookings (via Stripe),
-    and basic attendance tracking.
+    and attendance tracking.
     """
 
     # --- Status choices ---
@@ -217,12 +217,14 @@ class Booking(models.Model):
 
     # --- Attendance choices ---
     ATTENDANCE_UNKNOWN = "unknown"
-    ATTENDANCE_CHECKED_IN = "checked_in"
+    ATTENDANCE_PRESENT = "present"
+    ATTENDANCE_ABSENT = "absent"
     ATTENDANCE_NO_SHOW = "no_show"
 
     ATTENDANCE_CHOICES = [
-        (ATTENDANCE_UNKNOWN, "Unknown"),
-        (ATTENDANCE_CHECKED_IN, "Checked-in"),
+        (ATTENDANCE_UNKNOWN, "Not marked"),
+        (ATTENDANCE_PRESENT, "Present"),
+        (ATTENDANCE_ABSENT, "Absent"),
         (ATTENDANCE_NO_SHOW, "No-show"),
     ]
 
@@ -298,3 +300,16 @@ class Booking(models.Model):
     def is_paid(self) -> bool:
         """True if payment has been completed (membership or Stripe)."""
         return self.payment_status in {self.PAYMENT_INCLUDED, self.PAYMENT_PAID}
+
+    @property
+    def attendance_marked(self) -> bool:
+        """True if attendance has been explicitly set."""
+        return self.attendance_status != self.ATTENDANCE_UNKNOWN
+
+    @property
+    def is_present(self) -> bool:
+        return self.attendance_status == self.ATTENDANCE_PRESENT
+
+    @property
+    def is_no_show(self) -> bool:
+        return self.attendance_status == self.ATTENDANCE_NO_SHOW
