@@ -2,7 +2,6 @@ import datetime
 import random
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 from accounts.models import User
 from booking.models import Booking, ClassSession, FitnessClass, RecurrenceRule
@@ -23,8 +22,11 @@ class Command(BaseCommand):
 
         for name in trainer_names:
             trainer, _ = Trainer.objects.get_or_create(
-                full_name=name,
-                defaults={"bio": f"{name} is a certified fitness coach."},
+                name=name,
+                defaults={
+                    "role": "Coach",
+                    "instagram_link": "",
+                },
             )
             trainers.append(trainer)
 
@@ -51,15 +53,21 @@ class Command(BaseCommand):
                     "is_active": True,
                 },
             )
-            # assign random trainers
-            fc.instructors.set(random.sample(trainers, k=random.randint(1, 2)))
+            if trainers:
+                fc.instructors.set(
+                    random.sample(
+                        trainers,
+                        k=min(len(trainers), random.randint(1, 2)),
+                    )
+                )
             fitness_classes.append(fc)
 
         # -------------------------
         # 3. Recurrence rules + generate sessions
         # -------------------------
-        RecurrenceRule.objects.all().delete()  # reset test rules
-        ClassSession.objects.all().delete()  # reset test sessions
+        # Optional: clear existing test rules/sessions
+        RecurrenceRule.objects.all().delete()
+        ClassSession.objects.all().delete()
 
         today = datetime.date.today()
 
@@ -102,17 +110,16 @@ class Command(BaseCommand):
         # 5. Add Bookings
         # -------------------------
         all_sessions = list(ClassSession.objects.all())
-
-        # book 5 random sessions
-        for session in random.sample(all_sessions, k=5):
-            Booking.objects.get_or_create(
-                user=user,
-                class_session=session,
-                defaults={
-                    "status": Booking.STATUS_BOOKED,
-                    "payment_status": Booking.PAYMENT_INCLUDED,
-                },
-            )
+        if all_sessions:
+            for session in random.sample(all_sessions, k=min(5, len(all_sessions))):
+                Booking.objects.get_or_create(
+                    user=user,
+                    class_session=session,
+                    defaults={
+                        "status": Booking.STATUS_BOOKED,
+                        "payment_status": Booking.PAYMENT_INCLUDED,
+                    },
+                )
 
         self.stdout.write(
             self.style.SUCCESS("✔ Test booking data created successfully!")
