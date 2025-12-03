@@ -4,10 +4,20 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework import serializers
 
+from homepage.models import Trainer
+
 from .models import Booking, ClassSession, FitnessClass, RecurrenceRule
 
 
+class TrainerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Trainer
+        fields = ["id", "name", "role", "instagram_link", "profile_image"]
+
+
 class FitnessClassSerializer(serializers.ModelSerializer):
+    instructors = TrainerSerializer(many=True, read_only=True)
+
     class Meta:
         model = FitnessClass
         fields = [
