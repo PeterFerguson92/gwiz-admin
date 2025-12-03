@@ -9,6 +9,7 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound
+from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,6 +18,7 @@ from booking.serializer import (
     BookingSerializer,
     ClassSessionSerializer,
     FitnessClassSerializer,
+    FitnessClassWithUpcomingSessionsSerializer,
 )
 
 from . import membership
@@ -517,3 +519,43 @@ class MyBookingsListView(generics.ListAPIView):
         )
 
         return qs
+
+
+@extend_schema(
+    tags=["Booking"],
+    responses=FitnessClassSerializer,
+)
+class FitnessClassDetailView(RetrieveAPIView):
+    """
+    GET /api/booking/fitness-classes/<uuid:pk>/
+
+    Return a single fitness class by ID.
+    """
+
+    queryset = FitnessClass.objects.all()
+    serializer_class = FitnessClassSerializer
+    permission_classes = [AllowAny]
+
+
+class FitnessClassWithUpcomingSessionsView(RetrieveAPIView):
+    """
+    GET /booking/fitness-classes/<uuid:pk>/with-sessions/?days=30
+
+    Returns a fitness class and its upcoming sessions
+    in the next `days` days (default 30).
+    """
+
+    queryset = FitnessClass.objects.all()
+    serializer_class = FitnessClassWithUpcomingSessionsSerializer
+    permission_classes = [AllowAny]  # or IsAuthenticated
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+
+        # read `days` from query params (?days=7)
+        days_param = self.request.query_params.get("days")
+        # we keep it as-is here; parsing/validation happens in the serializer
+        if days_param is not None:
+            context["days"] = days_param
+
+        return context
