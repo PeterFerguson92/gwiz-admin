@@ -69,20 +69,7 @@ class ClassSessionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ClassSession
-        fields = [
-            "id",
-            "fitness_class",
-            "date",
-            "start_time",
-            "end_time",
-            "capacity_override",
-            "price_override",
-            "status",
-            "created_from_rule",
-            "created_at",
-            "capacity_effective",
-            "price_effective",
-        ]
+        fields = "__all__"
 
     def get_created_at(self, obj):
         """
