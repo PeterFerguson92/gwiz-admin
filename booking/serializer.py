@@ -63,6 +63,7 @@ class ClassSessionSerializer(serializers.ModelSerializer):
         decimal_places=2,
         read_only=True,
     )
+    spaces_left = serializers.SerializerMethodField()
 
     # override created_at to handle naive datetimes safely
     created_at = serializers.SerializerMethodField()
@@ -88,6 +89,15 @@ class ClassSessionSerializer(serializers.ModelSerializer):
 
         # let DRF/json render this as a string
         return value.isoformat()
+
+    def get_spaces_left(self, obj):
+        """
+        Calculate remaining spaces: effective capacity minus booked count.
+        """
+        effective_capacity = obj.capacity_effective
+        booked_count = obj.bookings.filter(status=Booking.STATUS_BOOKED).count()
+        spaces_left = effective_capacity - booked_count
+        return max(0, spaces_left)  # Ensure it doesn't go negative
 
 
 class BookingSerializer(serializers.ModelSerializer):
