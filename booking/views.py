@@ -19,6 +19,7 @@ from booking.serializer import (
     ClassSessionSerializer,
     FitnessClassSerializer,
     FitnessClassWithUpcomingSessionsSerializer,
+    MyBookingSerializer,
 )
 
 from . import membership
@@ -497,14 +498,14 @@ class CancelBookingView(APIView):
 
 
 class MyBookingsListView(generics.ListAPIView):
-    serializer_class = BookingSerializer
+    serializer_class = MyBookingSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
         qs = (
             Booking.objects.filter(user=user)
-            .select_related("class_session", "class_session.fitness_class")
+            .select_related("class_session", "class_session__fitness_class")
             .order_by("-class_session__date", "-class_session__start_time")
         )
 
@@ -512,11 +513,7 @@ class MyBookingsListView(generics.ListAPIView):
         only_upcoming = self.request.query_params.get("upcoming")
         if only_upcoming and only_upcoming.lower() in ("1", "true", "yes"):
             today = datetime.date.today()
-        qs = (
-            Booking.objects.filter(user=user)
-            .select_related("class_session", "class_session__fitness_class")
-            .order_by("-class_session__date", "-class_session__start_time")
-        )
+            qs = qs.filter(class_session__date__gte=today)
 
         return qs
 

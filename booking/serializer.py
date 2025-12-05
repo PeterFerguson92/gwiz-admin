@@ -130,6 +130,35 @@ class BookingSerializer(serializers.ModelSerializer):
         ]
 
 
+class FitnessClassSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FitnessClass
+        fields = ["id", "name", "genre"]
+
+
+class ClassSessionSummarySerializer(serializers.ModelSerializer):
+    fitness_class = FitnessClassSummarySerializer(read_only=True)
+
+    class Meta:
+        model = ClassSession
+        fields = ["id", "date", "start_time", "end_time", "fitness_class"]
+
+
+class MyBookingSerializer(serializers.ModelSerializer):
+    class_session = ClassSessionSummarySerializer(read_only=True)
+
+    class Meta:
+        model = Booking
+        fields = [
+            "id",
+            "status",
+            "payment_status",
+            "attendance_status",
+            "created_at",
+            "class_session",
+        ]
+
+
 class FitnessClassWithUpcomingSessionsSerializer(FitnessClassSerializer):
     upcoming_sessions = serializers.SerializerMethodField()
 
