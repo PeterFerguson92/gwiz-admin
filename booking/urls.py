@@ -10,6 +10,7 @@ from .views import (
     FitnessClassSessionsView,
     FitnessClassWithUpcomingSessionsView,
     MyBookingsListView,
+    StripeWebhookView,
     UpcomingClassSessionListView,
 )
 
@@ -71,5 +72,10 @@ urlpatterns = [
         "fitness-classes/<uuid:pk>/with-sessions/",
         FitnessClassWithUpcomingSessionsView.as_view(),
         name="fitness-class-with-sessions",
+    ),
+    path(
+        "stripe/webhook/",
+        StripeWebhookView.as_view(),
+        name="stripe-webhook",
     ),
 ]

@@ -1,8 +1,11 @@
 # booking/views.py
 
 import datetime  # add this
+import logging
 
+import stripe
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Case, Count, ExpressionWrapper, F, IntegerField, Q, When
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -22,8 +25,10 @@ from booking.serializer import (
     MyBookingSerializer,
 )
 
-from . import membership
+from . import membership, payments
 from .models import Booking, ClassSession, FitnessClass
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(
@@ -301,6 +306,8 @@ class BookSessionView(APIView):
             # For now: create a pending booking; Stripe flow will complete payment
             payment_status = Booking.PAYMENT_PENDING
 
+        stripe_client_secret = None
+
         booking = Booking.objects.create(
             user=user,
             class_session=session,
@@ -311,9 +318,51 @@ class BookSessionView(APIView):
         if payment_status == Booking.PAYMENT_INCLUDED:
             membership.consume_credit(user, session, n=1)
             # later: trigger WhatsApp confirmation here
+        else:
+            try:
+                payment_intent = payments.create_payment_intent_for_booking(booking)
+            except ImproperlyConfigured:
+                logger.exception(
+                    "Stripe is not configured; deleting booking %s", booking.id
+                )
+                booking.delete()
+                return Response(
+                    {"detail": "Online payments are currently unavailable."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+            except ValueError as exc:
+                logger.exception(
+                    "Invalid payment configuration for booking %s: %s",
+                    booking.id,
+                    exc,
+                )
+                booking.delete()
+                return Response(
+                    {"detail": str(exc)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            except stripe.error.StripeError as exc:
+                logger.exception(
+                    "Stripe error while creating PaymentIntent for booking %s: %s",
+                    booking.id,
+                    exc,
+                )
+                booking.delete()
+                return Response(
+                    {"detail": "Unable to start payment. Please try again."},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+
+            booking.stripe_payment_intent_id = payment_intent.id
+            booking.save(update_fields=["stripe_payment_intent_id", "updated_at"])
+            stripe_client_secret = payment_intent.client_secret
 
         serializer = BookingSerializer(booking)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        data = serializer.data
+        if stripe_client_secret:
+            data["stripe_client_secret"] = stripe_client_secret
+
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class CancelBookingView(APIView):
@@ -484,10 +533,16 @@ class CancelBookingView(APIView):
 
         # Mark booking cancelled
         booking.status = Booking.STATUS_CANCELLED
+        payment_status_changed = False
         if booking.payment_status == Booking.PAYMENT_PENDING:
             booking.payment_status = Booking.PAYMENT_VOID
+            payment_status_changed = True
 
-        booking.save(update_fields=["status", "updated_at"])
+        update_fields = ["status", "updated_at"]
+        if payment_status_changed:
+            update_fields.append("payment_status")
+
+        booking.save(update_fields=update_fields)
 
         # Restore credit if it was included in membership
         if booking.payment_status == Booking.PAYMENT_INCLUDED:
@@ -516,6 +571,117 @@ class MyBookingsListView(generics.ListAPIView):
             qs = qs.filter(class_session__date__gte=today)
 
         return qs
+
+
+@extend_schema(
+    tags=["Stripe"], auth=[], request=None, responses={200: OpenApiTypes.OBJECT}
+)
+class StripeWebhookView(APIView):
+    """
+    Receives asynchronous events from Stripe to update booking payment states.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
+
+        try:
+            event = payments.parse_stripe_event(request.body, sig_header)
+        except ValueError:
+            logger.warning("Stripe webhook received invalid JSON payload.")
+            return Response(
+                {"detail": "Invalid payload."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        except stripe.error.SignatureVerificationError:
+            logger.warning("Stripe webhook signature verification failed.")
+            return Response(
+                {"detail": "Invalid Stripe signature."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except ImproperlyConfigured:
+            logger.error("Stripe webhook invoked but STRIPE_SECRET_KEY is missing.")
+            return Response(
+                {"detail": "Stripe webhook is not configured."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        event_type = event.get("type")
+        data = event.get("data", {}).get("object", {})
+
+        if not data:
+            logger.warning(
+                "Stripe webhook missing data.object for event %s", event_type
+            )
+            return Response(
+                {"detail": "Event payload missing data."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if event_type == "payment_intent.succeeded":
+            self._handle_payment_intent_succeeded(data)
+        elif event_type in ("payment_intent.payment_failed", "payment_intent.canceled"):
+            self._handle_payment_intent_failed(data)
+        else:
+            logger.debug("Ignoring Stripe event type %s", event_type)
+
+        return Response({"received": True}, status=status.HTTP_200_OK)
+
+    def _handle_payment_intent_succeeded(self, payload: dict) -> None:
+        intent_id = payload.get("id")
+        if not intent_id:
+            logger.warning("Stripe event missing PaymentIntent id for success handler.")
+            return
+
+        booking = Booking.objects.filter(stripe_payment_intent_id=intent_id).first()
+
+        if not booking:
+            logger.warning(
+                "Stripe PaymentIntent %s was successful but no booking matched.",
+                intent_id,
+            )
+            return
+
+        if booking.payment_status == Booking.PAYMENT_PAID:
+            return
+
+        booking.payment_status = Booking.PAYMENT_PAID
+        booking.save(update_fields=["payment_status", "updated_at"])
+        logger.info(
+            "Marked booking %s as paid from Stripe webhook.",
+            booking.id,
+        )
+
+    def _handle_payment_intent_failed(self, payload: dict) -> None:
+        intent_id = payload.get("id")
+        if not intent_id:
+            logger.warning("Stripe event missing PaymentIntent id for failure handler.")
+            return
+
+        booking = Booking.objects.filter(stripe_payment_intent_id=intent_id).first()
+
+        if not booking:
+            logger.warning(
+                "Stripe PaymentIntent %s failed but no booking matched.",
+                intent_id,
+            )
+            return
+
+        changed_fields = []
+        if booking.status != Booking.STATUS_CANCELLED:
+            booking.status = Booking.STATUS_CANCELLED
+            changed_fields.append("status")
+        if booking.payment_status != Booking.PAYMENT_VOID:
+            booking.payment_status = Booking.PAYMENT_VOID
+            changed_fields.append("payment_status")
+
+        if changed_fields:
+            changed_fields.append("updated_at")
+            booking.save(update_fields=changed_fields)
+            logger.info(
+                "Marked booking %s as cancelled/void due to failed Stripe payment.",
+                booking.id,
+            )
 
 
 @extend_schema(

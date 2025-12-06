@@ -199,6 +199,16 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
+# Stripe Payments
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
+STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
+STRIPE_CURRENCY = env("STRIPE_CURRENCY", default="gbp")
+STRIPE_PAYMENT_DESCRIPTION_PREFIX = env(
+    "STRIPE_PAYMENT_DESCRIPTION_PREFIX",
+    default="Gwiz Class Booking",
+)
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Fsxcg Admin API",
     "DESCRIPTION": "Authentication and admin API for Fsxcg.",
