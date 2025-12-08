@@ -209,6 +209,19 @@ STRIPE_PAYMENT_DESCRIPTION_PREFIX = env(
     default="Gwiz Class Booking",
 )
 
+WHATSAPP_NOTIFICATIONS_ENABLED = env.bool(
+    "WHATSAPP_NOTIFICATIONS_ENABLED", default=False
+)
+TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID", default="")
+TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN", default="")
+TWILIO_WHATSAPP_FROM = env("TWILIO_WHATSAPP_FROM", default="")
+TWILIO_WHATSAPP_CONFIRM_TEMPLATE_SID = env(
+    "TWILIO_WHATSAPP_CONFIRM_TEMPLATE_SID", default=""
+)
+TWILIO_WHATSAPP_CANCEL_TEMPLATE_SID = env(
+    "TWILIO_WHATSAPP_CANCEL_TEMPLATE_SID", default=""
+)
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Fsxcg Admin API",
     "DESCRIPTION": "Authentication and admin API for Fsxcg.",
@@ -263,3 +276,35 @@ FRONTEND_RESET_PASSWORD_URL = os.environ.get(
     "FRONTEND_RESET_PASSWORD_URL",
     "http://localhost:3000/reset-password",
 )
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "app": {
+            "format": "[%(asctime)s] %(levelname)s %(name)s: %(message)s",
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "app",
+        }
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "booking": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "notifications": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

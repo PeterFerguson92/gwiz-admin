@@ -38,6 +38,15 @@ export STRIPE_WEBHOOK_SECRET=$(stripe listen --print-secret)
 python manage.py runserver
 ```
 
+### Handy reference
+
+- `stripe listen --forward-to localhost:8000/api/booking/stripe/webhook/`
+- Copy the signing secret the CLI prints and put it into `STRIPE_WEBHOOK_SECRET` (or
+  export it temporarily) before starting `runserver`.
+- Make sure the CLI stays running in its own terminal while you test, otherwise the
+  `payment_intent.succeeded` event never reaches Django and WhatsApp confirmations
+  for card bookings will not fire.
+
 Use test card numbers (e.g. `4242 4242 4242 4242`) when Stripe.js collects the payment
 details. The webhook endpoint automatically frees the booking and voids payment if a
 PaymentIntent fails or is cancelled.

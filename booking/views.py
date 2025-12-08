@@ -1,6 +1,4 @@
-# booking/views.py
-
-import datetime  # add this
+import datetime
 import logging
 
 import stripe
@@ -24,6 +22,7 @@ from booking.serializer import (
     FitnessClassWithUpcomingSessionsSerializer,
     MyBookingSerializer,
 )
+from notifications import whatsapp
 
 from . import membership, payments
 from .models import Booking, ClassSession, FitnessClass
@@ -317,7 +316,7 @@ class BookSessionView(APIView):
 
         if payment_status == Booking.PAYMENT_INCLUDED:
             membership.consume_credit(user, session, n=1)
-            # later: trigger WhatsApp confirmation here
+            whatsapp.send_booking_confirmation(booking)
         else:
             try:
                 payment_intent = payments.create_payment_intent_for_booking(booking)
@@ -548,6 +547,8 @@ class CancelBookingView(APIView):
         if booking.payment_status == Booking.PAYMENT_INCLUDED:
             membership.restore_credit(user, session, n=1)
 
+        whatsapp.send_booking_cancellation(booking)
+
         serializer = BookingSerializer(booking)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -647,6 +648,7 @@ class StripeWebhookView(APIView):
 
         booking.payment_status = Booking.PAYMENT_PAID
         booking.save(update_fields=["payment_status", "updated_at"])
+        whatsapp.send_booking_confirmation(booking)
         logger.info(
             "Marked booking %s as paid from Stripe webhook.",
             booking.id,
@@ -678,6 +680,7 @@ class StripeWebhookView(APIView):
         if changed_fields:
             changed_fields.append("updated_at")
             booking.save(update_fields=changed_fields)
+            whatsapp.send_booking_cancellation(booking)
             logger.info(
                 "Marked booking %s as cancelled/void due to failed Stripe payment.",
                 booking.id,
