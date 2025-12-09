@@ -260,16 +260,19 @@ EMAIL_USE_TLS = True
 
 EMAIL_HOST_USER = "apikey"  # literally this string
 EMAIL_HOST_PASSWORD = os.environ.get("SENDGRID_API_KEY")
+SENDGRID_API_KEY = env(
+    "SENDGRID_API_KEY", default=os.environ.get("SENDGRID_API_KEY", "")
+)
+DEFAULT_FROM_EMAIL = env(
+    "DEFAULT_FROM_EMAIL",
+    default=os.environ.get("DEFAULT_FROM_EMAIL", "webmaster@localhost"),
+)
 
-DEFAULT_FROM_EMAIL = "Fsxcg <no-reply@fsxcg.com>"
 
 FRONTEND_RESET_PASSWORD_URL = os.environ.get(
     "FRONTEND_RESET_PASSWORD_URL",
     "http://localhost:3000/reset-password",
 )
-
-# Sender shown in emails
-DEFAULT_FROM_EMAIL = "Fsxcg <no-reply@fsxcg.com>"
 
 # (Optional) Frontend URL for reset link
 FRONTEND_RESET_PASSWORD_URL = os.environ.get(
