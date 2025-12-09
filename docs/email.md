@@ -12,6 +12,8 @@ default Django SMTP backend and provides delivery logs directly within SendGrid.
    (e.g. `Fsxcg <no-reply@fsxcg.com>`).
 3. Restart Django after updating the environment so the cached SendGrid client
    picks up the new settings.
+4. Set `FRONTEND_RESET_PASSWORD_URL` to the frontend route that handles reset
+   links (e.g. `https://app.fsxcg.com/reset-password` or your local dev URL).
 
 ## Local testing
 

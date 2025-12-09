@@ -269,15 +269,11 @@ DEFAULT_FROM_EMAIL = env(
 )
 
 
-FRONTEND_RESET_PASSWORD_URL = os.environ.get(
+FRONTEND_RESET_PASSWORD_URL = env(
     "FRONTEND_RESET_PASSWORD_URL",
-    "http://localhost:3000/reset-password",
-)
-
-# (Optional) Frontend URL for reset link
-FRONTEND_RESET_PASSWORD_URL = os.environ.get(
-    "FRONTEND_RESET_PASSWORD_URL",
-    "http://localhost:3000/reset-password",
+    default=os.environ.get(
+        "FRONTEND_RESET_PASSWORD_URL", "http://localhost:3000/reset-password"
+    ),
 )
 
 LOGGING = {
