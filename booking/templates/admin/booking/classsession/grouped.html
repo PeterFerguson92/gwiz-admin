@@ -1,139 +1,46 @@
 {% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'booking/css/grouped_sessions.css' %}">
+{% endblock %}
 
 {% block content %}
 
-<div style="
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    padding: 0.75rem 0;
-    margin-bottom: 1rem;
-    background: #f9fafb;
-">
-  <div style="
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 0.75rem;
-  ">
-    <h1 style="margin: 0;">Class sessions grouped by Fitness class</h1>
-
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-      <!-- Back to default view -->
-      <a
-        href="{% url 'admin:booking_classsession_changelist' %}"
-        class="button button-primary"
-        style="
-          padding: 0.55rem 1.3rem;
-          border-radius: 999px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          cursor: pointer;
-          text-decoration: none;
-        "
-      >
-        <span>↩️</span>
-        <span>Back to default view</span>
-      </a>
-
-      <!-- Generate sessions (takes you to recurrence rules) -->
-      <a
-        href="{% url 'admin:booking_recurrencerule_changelist' %}"
-        class="button button-primary"
-        style="
-          padding: 0.55rem 1.3rem;
-          border-radius: 999px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          cursor: pointer;
-          text-decoration: none;
-        "
-      >
-        <span>🔄</span>
-        <span>Generate sessions (recurrence rules)</span>
-      </a>
+<div class="grouped-toolbar">
+  <div class="grouped-toolbar__actions">
+    <div>
+      <h1>Class sessions grouped by fitness class</h1>
+      <p>Quickly review upcoming sessions and jump into bookings & attendance.</p>
+    </div>
+    <div class="grouped-toolbar__buttons">
+      <a href="{% url 'admin:booking_classsession_changelist' %}" class="button button-primary">↩︎ Back to default view</a>
+      <a href="{% url 'admin:booking_recurrencerule_changelist' %}" class="button button-secondary">🔄 Generate sessions</a>
     </div>
   </div>
 
-  <!-- Search / filter bar -->
-  <form method="get" style="
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      align-items: center;
-  ">
+  <form method="get" class="grouped-toolbar__filters">
     <div>
-      <label style="font-size: 0.8rem; color: #6b7280; display:block; margin-bottom:0.15rem;">
-        Search by fitness class
-      </label>
-      <input
-        type="text"
-        name="q"
-        value="{{ query }}"
-        placeholder="e.g. Beginner Strength"
-        style="
-          padding: 0.4rem 0.7rem;
-          border-radius: 999px;
-          border: 1px solid #d1d5db;
-          font-size: 0.9rem;
-          min-width: 220px;
-        "
-      />
+      <label>Search by fitness class</label>
+      <input type="text" name="q" value="{{ query }}" placeholder="e.g. Beginner Strength">
     </div>
-
     <div>
-      <label style="font-size: 0.8rem; color: #6b7280; display:block; margin-bottom:0.15rem;">
-        Status
-      </label>
-      <select
-        name="status"
-        style="
-          padding: 0.4rem 0.7rem;
-          border-radius: 999px;
-          border: 1px solid #d1d5db;
-          font-size: 0.9rem;
-          min-width: 160px;
-        "
-      >
+      <label>Status</label>
+      <select name="status">
         <option value="">All</option>
         {% for value, label in status_choices %}
-          <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>
-            {{ label }}
-          </option>
+          <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
     </div>
-
-    <div style="margin-top: 1.35rem;">
-      <button
-        type="submit"
-        class="button button-primary"
-        style="
-          padding: 0.45rem 1.2rem;
-          border-radius: 999px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          cursor: pointer;
-        "
-      >
-        <span>🔎</span>
-        <span>Apply filters</span>
-      </button>
+    <div>
+      <button type="submit" class="button button-primary">🔎 Apply filters</button>
     </div>
   </form>
 </div>
 
-<p style="margin-bottom: 1.25rem; font-size: 0.95rem; color: #4b5563;">
+<p class="grouped-toolbar__hint">
   Sessions are ordered with the most recent dates first within each class.
   Click a class header to expand or collapse its sessions.
 </p>
@@ -143,129 +50,43 @@
 {% else %}
   <div id="grouped-sessions">
     {% for class_name, sessions in groups %}
-      <div class="session-group" style="margin-bottom: 1.25rem; border-radius: 0.5rem; border: 1px solid #e5e7eb; overflow: hidden;">
-        <div
-          class="session-group-header"
-          style="
-            cursor: pointer;
-            padding: 0.5rem 0.75rem;
-            background: #f3f4f6;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          "
-          data-group-toggle
-        >
-          <div style="font-size: 1rem; font-weight: 600;">
-            {{ class_name }}
-          </div>
-          <div style="font-size: 0.8rem; color: #6b7280;">
+      <div class="session-group">
+        <div class="session-group-header" data-group-toggle>
+          <div>{{ class_name }}</div>
+          <div>
             {{ sessions|length }} session{% if sessions|length != 1 %}s{% endif %}
-            <span style="margin-left: 0.35rem;">▼</span>
+            <span>▼</span>
           </div>
         </div>
 
         <div class="session-group-body">
-          <table class="table" style="width: 100%; font-size: 0.9rem;">
-            <thead style="background: #f9fafb;">
+          <table class="table">
+            <thead>
               <tr>
-                <th style="text-align:left; padding: 0.4rem 0.6rem;">Date</th>
-                <th style="text-align:left; padding: 0.4rem 0.6rem;">Time</th>
-                <th style="text-align:left; padding: 0.4rem 0.6rem;">Status</th>
-                <th style="text-align:left; padding: 0.4rem 0.6rem;">Bookings / Attendance</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Bookings / Attendance</th>
               </tr>
             </thead>
             <tbody>
               {% for s in sessions %}
                 {% url 'admin:booking_classsession_change' s.pk as session_change_url %}
                 {% url 'admin:booking_booking_changelist' as booking_changelist_url %}
-                <tr
-                  style="cursor: pointer;"
-                  onclick="window.location.href='{{ session_change_url }}';"
-                >
-                  <td style="padding: 0.35rem 0.6rem;">
-                    <a
-                      href="{{ session_change_url }}"
-                      style="text-decoration: none; color: inherit;"
-                    >
-                      {{ s.date|date:"l, d M Y" }}
-                    </a>
+                <tr onclick="window.location.href='{{ session_change_url }}';">
+                  <td>
+                    <a href="{{ session_change_url }}">{{ s.date|date:"l, d M Y" }}</a>
                   </td>
-                  <td style="padding: 0.35rem 0.6rem;">
-                    <a
-                      href="{{ session_change_url }}"
-                      style="text-decoration: none; color: inherit;"
-                    >
-                      {{ s.start_time|time:"h:i A" }} → {{ s.end_time|time:"h:i A" }}
-                    </a>
+                  <td>
+                    <a href="{{ session_change_url }}">{{ s.start_time|time:"h:i A" }} → {{ s.end_time|time:"h:i A" }}</a>
                   </td>
-                  <td style="padding: 0.35rem 0.6rem;">
-                    <a
-                      href="{{ session_change_url }}"
-                      style="text-decoration: none; color: inherit;"
-                    >
-                      {% if s.status == "scheduled" %}
-                        <span style="
-                          display:inline-flex;
-                          align-items:center;
-                          gap:0.25rem;
-                          padding:0.15rem 0.5rem;
-                          border-radius:999px;
-                          background:#ecfdf3;
-                          color:#166534;
-                          font-size:0.8rem;
-                          font-weight:500;
-                        ">
-                          <span style="width:8px;height:8px;border-radius:999px;background:#22c55e;"></span>
-                          <span>{{ s.get_status_display }}</span>
-                        </span>
-                      {% elif s.status == "cancelled" %}
-                        <span style="
-                          display:inline-flex;
-                          align-items:center;
-                          gap:0.25rem;
-                          padding:0.15rem 0.5rem;
-                          border-radius:999px;
-                          background:#fef2f2;
-                          color:#b91c1c;
-                          font-size:0.8rem;
-                          font-weight:500;
-                        ">
-                          <span style="width:8px;height:8px;border-radius:999px;background:#f97373;"></span>
-                          <span>{{ s.get_status_display }}</span>
-                        </span>
-                      {% else %}
-                        <span style="
-                          display:inline-flex;
-                          align-items:center;
-                          gap:0.25rem;
-                          padding:0.15rem 0.5rem;
-                          border-radius:999px;
-                          background:#eff6ff;
-                          color:#1d4ed8;
-                          font-size:0.8rem;
-                          font-weight:500;
-                        ">
-                          <span style="width:8px;height:8px;border-radius:999px;background:#60a5fa;"></span>
-                          <span>{{ s.get_status_display }}</span>
-                        </span>
-                      {% endif %}
-                    </a>
+                  <td>
+                    <span class="session-status {{ s.status }}">
+                      {{ s.get_status_display }}
+                    </span>
                   </td>
-                  <td style="padding: 0.35rem 0.6rem;">
-                    <a
-                      href="{{ booking_changelist_url }}?class_session__id__exact={{ s.pk }}"
-                      class="button"
-                      style="
-                        padding: 0.25rem 0.7rem;
-                        border-radius: 999px;
-                        font-size: 0.8rem;
-                        font-weight: 500;
-                        text-decoration: none;
-                        cursor: pointer;
-                      "
-                      onclick="event.stopPropagation();"
-                    >
+                  <td>
+                    <a href="{{ booking_changelist_url }}?class_session__id__exact={{ s.pk }}" onclick="event.stopPropagation();">
                       View bookings &amp; attendance
                     </a>
                   </td>
@@ -280,18 +101,12 @@
 {% endif %}
 
 <script>
-  // Collapsible groups (accordion-style)
   document.addEventListener("DOMContentLoaded", function () {
-    var headers = document.querySelectorAll("[data-group-toggle]");
-    headers.forEach(function (header) {
+    document.querySelectorAll("[data-group-toggle]").forEach(function (header) {
       header.addEventListener("click", function () {
-        var group = header.closest(".session-group");
+        const group = header.closest(".session-group");
         if (!group) return;
-        var body = group.querySelector(".session-group-body");
-        if (!body) return;
-
-        var isHidden = body.style.display === "none";
-        body.style.display = isHidden ? "" : "none";
+        group.classList.toggle("collapsed");
       });
     });
   });

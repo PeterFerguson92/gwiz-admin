@@ -201,6 +201,7 @@ class ClassSessionAdmin(ModelAdmin):
 
     change_list_template = "admin/booking/classsession/change_list.html"
     unfold_fieldsets_in_tabs = False
+    actions = ["export_attendance_csv"]
 
     list_display = (
         "fitness_class",
@@ -305,6 +306,81 @@ class ClassSessionAdmin(ModelAdmin):
             ),
         ]
         return custom_urls + urls
+
+    def export_attendance_csv(self, request, queryset):
+        queryset = queryset.select_related("fitness_class")
+
+        bookings = (
+            Booking.objects.filter(class_session__in=queryset)
+            .select_related("user", "class_session", "class_session__fitness_class")
+            .order_by(
+                "class_session__date",
+                "class_session__start_time",
+                "user__last_name",
+                "user__first_name",
+            )
+        )
+
+        if not bookings.exists():
+            self.message_user(
+                request,
+                "No bookings found for the selected sessions.",
+                level=messages.WARNING,
+            )
+            return None
+
+        if queryset.count() == 1:
+            session = queryset.first()
+            filename = f"attendance_session_{session.id}.csv"
+        else:
+            filename = "attendance_sessions_export.csv"
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                "Session ID",
+                "Fitness class",
+                "Session date",
+                "Start time",
+                "End time",
+                "Booking ID",
+                "User name",
+                "User email",
+                "Booking status",
+                "Attendance status",
+                "Payment status",
+                "Booking created at",
+            ]
+        )
+
+        for booking in bookings:
+            session = booking.class_session
+            user = booking.user
+            writer.writerow(
+                [
+                    str(session.id),
+                    session.fitness_class.name if session.fitness_class else "",
+                    session.date.isoformat(),
+                    session.start_time.strftime("%H:%M") if session.start_time else "",
+                    session.end_time.strftime("%H:%M") if session.end_time else "",
+                    str(booking.id),
+                    user.get_full_name() or user.email,
+                    user.email,
+                    booking.get_status_display(),
+                    booking.get_attendance_status_display(),
+                    booking.get_payment_status_display(),
+                    booking.created_at.isoformat(),
+                ]
+            )
+
+        return response
+
+    export_attendance_csv.short_description = (
+        "Export attendance CSV for selected sessions"
+    )
 
     def grouped_view(self, request):
         """
