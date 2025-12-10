@@ -1,0 +1,11 @@
+<svg width="156" height="36" viewBox="0 0 156 36" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gwiz Admin">
+  <defs>
+    <linearGradient id="gwizGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A5B4FC"/>
+      <stop offset="100%" stop-color="#2DD4BF"/>
+    </linearGradient>
+  </defs>
+  <rect width="156" height="36" rx="12" fill="rgba(15,23,42,0.6)"/>
+  <text x="16" y="24" font-family="Inter, 'Segoe UI', sans-serif" font-size="18" font-weight="700" fill="url(#gwizGradientDark)">FSXCG</text>
+  <text x="120" y="24" font-family="Inter, 'Segoe UI', sans-serif" font-size="16" font-weight="500" fill="#E2E8F0">Admin</text>
+</svg>

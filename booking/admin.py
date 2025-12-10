@@ -8,6 +8,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
+from unfold.admin import ModelAdmin
 
 from booking.services import generate_sessions_for_rule, preview_sessions_for_rule
 
@@ -17,7 +18,7 @@ from .models import Booking, ClassSession, FitnessClass, RecurrenceRule
 
 
 @admin.register(FitnessClass)
-class FitnessClassAdmin(admin.ModelAdmin):
+class FitnessClassAdmin(ModelAdmin):
     list_display = ("name", "genre", "capacity", "base_price", "is_active")
     list_filter = ("genre", "is_active")
     search_fields = ("name", "description")
@@ -84,7 +85,7 @@ class RecurrenceRuleForm(forms.ModelForm):
 
 
 @admin.register(RecurrenceRule)
-class RecurrenceRuleAdmin(admin.ModelAdmin):
+class RecurrenceRuleAdmin(ModelAdmin):
     form = RecurrenceRuleForm
     change_form_template = "admin/booking/recurrencerule/change_form.html"
 
@@ -195,10 +196,11 @@ class BookingInline(admin.TabularInline):
 
 
 @admin.register(ClassSession)
-class ClassSessionAdmin(admin.ModelAdmin):
+class ClassSessionAdmin(ModelAdmin):
     form = ClassSessionForm
 
     change_list_template = "admin/booking/classsession/change_list.html"
+    unfold_fieldsets_in_tabs = False
 
     list_display = (
         "fitness_class",
@@ -213,6 +215,39 @@ class ClassSessionAdmin(admin.ModelAdmin):
     autocomplete_fields = ("fitness_class", "created_from_rule")
     ordering = ("fitness_class__name", "date", "start_time")
     inlines = [BookingInline]
+    readonly_fields = ("created_at",)
+    fieldsets = (
+        (
+            "Schedule",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (
+                    "fitness_class",
+                    ("date", "status"),
+                    ("start_time", "end_time"),
+                    "created_from_rule",
+                ),
+            },
+        ),
+        (
+            "Overrides",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "description": (
+                    "Adjust capacity or price for this individual session. "
+                    "Leave blank to inherit values from the fitness class."
+                ),
+                "fields": (("capacity_override", "price_override"),),
+            },
+        ),
+        (
+            "Meta",
+            {
+                "classes": ("gwiz-card",),
+                "fields": ("created_at",),
+            },
+        ),
+    )
 
     search_fields = ("fitness_class__name", "date", "start_time")
 
@@ -325,19 +360,6 @@ class ClassSessionAdmin(admin.ModelAdmin):
             "admin/booking/classsession/grouped.html",
             context,
         )
-
-
-# ---------- Booking ---------- #
-
-
-import csv
-from datetime import date
-
-from django.contrib import admin, messages
-from django.http import HttpResponse
-from django.urls import path
-
-from .models import Booking
 
 
 @admin.register(Booking)
