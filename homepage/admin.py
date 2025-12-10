@@ -34,43 +34,45 @@ class BannerAdmin(ModelAdmin):
         (
             "Logo",
             {
-                "fields": ["logo"],
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("logo",),
             },
         ),
         (
             "Slide 1",
             {
-                "fields": [
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (
                     "img_slide_1",
-                    "title_slide_1",
-                    "subtitle_slide_1",
-                ],
+                    ("title_slide_1", "subtitle_slide_1"),
+                ),
             },
         ),
         (
             "Slide 2",
             {
-                "fields": [
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (
                     "img_slide_2",
-                    "title_slide_2",
-                    "subtitle_slide_2",
-                ],
+                    ("title_slide_2", "subtitle_slide_2"),
+                ),
             },
         ),
         (
             "Slide 3",
             {
-                "fields": [
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (
                     "img_slide_3",
-                    "title_slide_3",
-                    "subtitle_slide_3",
-                ],
+                    ("title_slide_3", "subtitle_slide_3"),
+                ),
             },
         ),
         (
             "Metadata",
             {
-                "fields": ["created_at"],
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("created_at",),
             },
         ),
     ]
@@ -84,10 +86,17 @@ class AboutUsAdmin(ModelAdmin):
     readonly_fields = ("created_at",)
 
     fieldsets = [
-        ("General", {"fields": ("title", "cover_image", "team")}),
+        (
+            "General",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("title", "cover_image", "team"),
+            },
+        ),
         (
             "Homepage Display",
             {
+                "classes": ("gwiz-card", "gwiz-grid"),
                 "fields": (
                     "homepage_display_header",
                     "homepage_display_text",
@@ -96,12 +105,13 @@ class AboutUsAdmin(ModelAdmin):
                     "highlight_text3",
                     "about_us_homepage_image1",
                     "about_us_homepage_image2",
-                )
+                ),
             },
         ),
         (
             "Section Content",
             {
+                "classes": ("gwiz-card", "gwiz-grid"),
                 "fields": (
                     "section_display_header",
                     "section_display_text",
@@ -110,10 +120,16 @@ class AboutUsAdmin(ModelAdmin):
                     "section_highlight_text3",
                     "about_us_section_image1",
                     "about_us_section_image2",
-                )
+                ),
             },
         ),
-        ("Metadata", {"fields": ("created_at",)}),
+        (
+            "Metadata",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("created_at",),
+            },
+        ),
     ]
 
     # Enforce singleton behavior in admin
@@ -142,23 +158,30 @@ class TrainerAdmin(ModelAdmin):
         (
             "Basic Info",
             {
-                "fields": (
-                    "name",
-                    "role",
-                    "instagram_link",
-                )
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (("name", "role"),),
             },
         ),
         (
             "Media",
             {
+                "classes": ("gwiz-card", "gwiz-grid"),
                 "fields": (
-                    "profile_image",
-                    # "profile_image_preview",  # optional — see below
-                )
+                    (
+                        "instagram_link",
+                        "profile_image",
+                    )
+                    # "profile_image_preview",
+                ),
             },
         ),
-        ("Metadata", {"fields": ("created_at",)}),
+        (
+            "Metadata",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("created_at",),
+            },
+        ),
     ]
 
 
@@ -169,9 +192,27 @@ class TeamAdmin(ModelAdmin):
     filter_horizontal = ("trainers",)  # 👈 enhances M2M selection
 
     fieldsets = [
-        ("Team Info", {"fields": ("title", "header", "description")}),
-        ("Trainers", {"fields": ("trainers",)}),
-        ("Metadata", {"fields": ("created_at",)}),
+        (
+            "Team Info",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("title", "header", "description"),
+            },
+        ),
+        (
+            "Trainers",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("trainers",),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("created_at",),
+            },
+        ),
     ]
 
     # ✅ Singleton enforcement
@@ -195,9 +236,24 @@ class ServiceAdmin(ModelAdmin):
     readonly_fields = ("created_at",)
 
     fieldsets = [
-        ("Service Info", {"fields": ("name", "short_description", "long_description")}),
-        ("Media", {"fields": ("cover_image",)}),
-        ("Metadata", {"fields": ("created_at",)}),
+        (
+            "Service Info",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (("name",), "short_description", "long_description"),
+            },
+        ),
+        (
+            "Media",
+            {"classes": ("gwiz-card", "gwiz-grid"), "fields": ("cover_image",)},
+        ),
+        (
+            "Metadata",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("created_at",),
+            },
+        ),
     ]
 
 
@@ -207,6 +263,23 @@ class FaqAdmin(ModelAdmin):
     search_fields = ("question", "answer")
     list_filter = ("created_at",)
     ordering = ("question", "created_at")
+    readonly_fields = ("created_at",)
+    fieldsets = (
+        (
+            "FAQ entry",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (("question",), "answer"),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("created_at",),
+            },
+        ),
+    )
 
 
 @admin.register(Contact)
@@ -221,26 +294,37 @@ class ContactAdmin(ModelAdmin):
         (
             "Content",
             {
+                "classes": ("gwiz-card", "gwiz-grid"),
                 "fields": (
-                    "header",
-                    "description",
-                    "background_image",
-                )
+                    (
+                        "background_image",
+                        "header",
+                    ),
+                    ("description",),
+                ),
             },
         ),
         (
             "Contact Info",
             {
+                "classes": ("gwiz-card", "gwiz-grid"),
                 "fields": (
-                    "phone",
-                    "email",
-                    "address",
-                    "social",
-                )
+                    ("phone", "email"),
+                    ("address", "social"),
+                ),
             },
         ),
-        ("Integration", {"fields": ("access_key",)}),
-        ("Meta", {"fields": ("created_at",)}),
+        (
+            "Integration",
+            {"classes": ("gwiz-card", "gwiz-grid"), "fields": ("access_key",)},
+        ),
+        (
+            "Meta",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("created_at",),
+            },
+        ),
     )
 
 
@@ -254,10 +338,34 @@ class FooterAdmin(ModelAdmin):
     readonly_fields = ("created_at",)
 
     fieldsets = (
-        ("Branding", {"fields": ("logo", "slogan")}),
-        ("Contact & Services", {"fields": ("contact", "services")}),
-        ("Social Media", {"fields": ("instagram_link", "tiktok_link")}),
-        ("Metadata", {"fields": ("created_at",)}),
+        (
+            "Branding",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (("logo", "slogan"),),
+            },
+        ),
+        (
+            "Contact & Services",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (("contact"), "services"),
+            },
+        ),
+        (
+            "Social Media",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (("instagram_link", "tiktok_link"),),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("created_at",),
+            },
+        ),
     )
 
 
@@ -268,24 +376,33 @@ class HomepageAdmin(ModelAdmin):
     filter_horizontal = ("services", "faqs")  # 👈 enhances M2M selection
 
     fieldsets = [
-        ("Main Settings", {"fields": ("title",)}),
+        (
+            "Main Settings",
+            {"classes": ("gwiz-card", "gwiz-grid"), "fields": ("title",)},
+        ),
         (
             "Content Blocks",
             {
+                "classes": ("gwiz-card", "gwiz-grid"),
                 "fields": (
-                    "banner",
-                    "about_us",
-                    "service_title",
+                    ("banner", "about_us"),
+                    ("service_title",),
                     "service_description",
                     "services",
-                    "faq_title",
+                    ("faq_title",),
                     "faq_description",
                     "faqs",
                     "contact",
-                )
+                ),
             },
         ),
-        ("Metadata", {"fields": ("created_at",)}),
+        (
+            "Metadata",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("created_at",),
+            },
+        ),
     ]
 
     def has_add_permission(self, request):

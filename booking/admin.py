@@ -23,6 +23,40 @@ class FitnessClassAdmin(ModelAdmin):
     list_filter = ("genre", "is_active")
     search_fields = ("name", "description")
     filter_horizontal = ("instructors",)
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (
+            "Overview",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("cover_image", "name", "genre", "description"),
+            },
+        ),
+        (
+            "Pricing & logistics",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (
+                    ("base_price", "default_duration_minutes"),
+                    ("capacity", "is_active"),
+                ),
+            },
+        ),
+        (
+            "People & notes",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("instructors", "additional_notes"),
+            },
+        ),
+        (
+            "Meta",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (("created_at", "updated_at"),),
+            },
+        ),
+    )
 
 
 # ---------- RecurrenceRule ---------- #
@@ -88,6 +122,41 @@ class RecurrenceRuleForm(forms.ModelForm):
 class RecurrenceRuleAdmin(ModelAdmin):
     form = RecurrenceRuleForm
     change_form_template = "admin/booking/recurrencerule/change_form.html"
+    readonly_fields = ("created_at",)
+    fieldsets = (
+        (
+            "Link & cadence",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (("fitness_class", "recurrence_type"), "is_active"),
+            },
+        ),
+        (
+            "Days & times",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (
+                    "days_of_week",
+                    ("start_date", "end_date"),
+                    ("start_time", "end_time"),
+                ),
+            },
+        ),
+        (
+            "Advanced",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("rrule",),
+            },
+        ),
+        (
+            "Meta",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("created_at",),
+            },
+        ),
+    )
 
     list_display = (
         "fitness_class",
@@ -487,21 +556,34 @@ class BookingAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (
-            "Booking",
+            "Booking details",
             {
-                "fields": (
-                    "user",
-                    "class_session",
-                    "status",
-                    "payment_status",
-                    "stripe_payment_intent_id",
-                    "attendance_status",
-                )
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "description": "Link a member to a session and capture any quick notes.",
+                "fields": (("user", "class_session"),),
+            },
+        ),
+        (
+            "Status & payment",
+            {
+                "classes": ("gwiz-card", "gwiz-grid", "gwiz-status-card"),
+                "description": "Keep booking and attendance states on the left, Stripe/payment on the right.",
+                "fields": (("status", "attendance_status"),),
+            },
+        ),
+        (
+            "Payment details",
+            {
+                "classes": ("gwiz-card", "gwiz-grid", "gwiz-status-card"),
+                "fields": (("payment_status", "stripe_payment_intent_id"),),
             },
         ),
         (
             "Timestamps",
-            {"fields": ("created_at", "updated_at")},
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (("created_at", "updated_at"),),
+            },
         ),
     )
 
@@ -814,26 +896,6 @@ class BookingAdmin(admin.ModelAdmin):
         "mark_no_show",
         "export_attendance_csv",
     ]
-
-    fieldsets = (
-        (
-            "Booking",
-            {
-                "fields": (
-                    "user",
-                    "class_session",
-                    "status",
-                    "payment_status",
-                    "stripe_payment_intent_id",
-                    "attendance_status",
-                )
-            },
-        ),
-        (
-            "Timestamps",
-            {"fields": ("created_at", "updated_at")},
-        ),
-    )
 
     # ---------- Custom admin URL for monthly CSV ----------
 

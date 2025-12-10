@@ -47,43 +47,49 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
 
     fieldsets = (
         (
-            None,
+            "Profile",
             {
+                "classes": ("gwiz-card", "gwiz-grid"),
                 "fields": (
-                    "username",
-                    "email",
-                    "first_name",
-                    "last_name",
+                    ("username", "email"),
+                    ("first_name", "last_name"),
                     "full_name",
-                    "avatar_url",
-                    "phone_number",
-                )
+                    ("avatar_url", "phone_number"),
+                ),
             },
         ),
         (
             "Social login",
-            {"fields": ("is_social_login", "provider")},
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("is_social_login", "provider"),
+            },
         ),
         (
             "Permissions",
             {
+                "classes": ("gwiz-card", "gwiz-grid"),
                 "fields": (
-                    "is_active",
-                    "is_staff",
-                    "is_superuser",
+                    ("is_active", "is_staff", "is_superuser"),
                     "groups",
                     "user_permissions",
-                )
+                ),
             },
         ),
-        ("Important dates", {"fields": ("last_login", "date_joined")}),
+        (
+            "Important dates",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("last_login", "date_joined"),
+            },
+        ),
     )
 
     add_fieldsets = (
         (
             None,
             {
-                "classes": ("wide",),
+                "classes": ("wide", "gwiz-card", "gwiz-grid"),
                 "fields": ("username", "email", "full_name", "password1", "password2"),
             },
         ),
