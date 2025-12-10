@@ -271,7 +271,6 @@ class ClassSessionAdmin(ModelAdmin):
     change_list_template = "admin/booking/classsession/change_list.html"
     unfold_fieldsets_in_tabs = False
     actions = ["export_attendance_csv"]
-
     list_display = (
         "fitness_class",
         "formatted_date",
@@ -828,6 +827,8 @@ class BookingAdmin(admin.ModelAdmin):
     # ---------- UI helpers ----------
 
     def user_full_name(self, obj):
+        if not obj.user_id:
+            return "—"
         return obj.user.get_full_name() or obj.user.email
 
     user_full_name.short_description = "User full name"
@@ -853,6 +854,7 @@ class BookingAdmin(admin.ModelAdmin):
     # We trigger actions via buttons, not Django's default bars
     actions_on_top = False
     actions_on_bottom = False
+    list_display_links = ("id", "user_full_name")
 
     # ---------- List view configuration ----------
 
