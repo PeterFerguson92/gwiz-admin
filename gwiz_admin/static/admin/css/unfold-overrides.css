@@ -230,11 +230,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     opacity: 0.95;
 }
 
-.login #page {
+.login #page,
+.logout #page {
     background: linear-gradient(135deg, #0f172a 0%, #312e81 50%, #0d9488 100%);
 }
 
-.login #page .w-full.sm\:w-96 {
+.login #page .w-full.sm\:w-96,
+.logout #page .w-full.sm\:w-96 {
     background: rgba(255, 255, 255, 0.96);
     border-radius: 1.5rem;
     padding: 2.5rem;
@@ -243,7 +245,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     backdrop-filter: blur(10px);
 }
 
-.login #page .w-full.sm\:w-96::before {
+.login #page .w-full.sm\:w-96::before,
+.logout #page .w-full.sm\:w-96::before {
     content: "";
     display: block;
     width: 110px;
@@ -258,7 +261,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     background-position: center;
 }
 
-.login #page .w-full.sm\:w-96::after {
+.login #page .w-full.sm\:w-96::after,
+.logout #page .w-full.sm\:w-96::after {
     content: "FSxCG";
     display: block;
     text-align: center;
@@ -272,23 +276,31 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .login #page .w-full.sm\:w-96 h1,
 .login #page .w-full.sm\:w-96 p,
 .login #page .w-full.sm\:w-96 label,
-.login #page .w-full.sm\:w-96 span {
+.login #page .w-full.sm\:w-96 span,
+.logout #page .w-full.sm\:w-96 h1,
+.logout #page .w-full.sm\:w-96 p,
+.logout #page .w-full.sm\:w-96 label,
+.logout #page .w-full.sm\:w-96 span {
     color: rgba(15, 23, 42, 0.88);
 }
 
 .login #page .w-full.sm\:w-96 .btn,
-.login #page .w-full.sm\:w-96 button[type="submit"] {
+.login #page .w-full.sm\:w-96 button[type="submit"],
+.logout #page .w-full.sm\:w-96 .btn,
+.logout #page .w-full.sm\:w-96 button[type="submit"] {
     background: linear-gradient(120deg, #6366f1, #06b6d4);
     border: none;
     box-shadow: 0 12px 30px rgba(79, 70, 229, 0.4);
 }
 
-.login #page .w-full.sm\:w-96 a {
+.login #page .w-full.sm\:w-96 a,
+.logout #page .w-full.sm\:w-96 a {
     color: #4338ca;
     font-weight: 600;
 }
 
-.login #page label {
+.login #page label,
+.logout #page label {
     color: rgba(15, 23, 42, 0.65);
     font-weight: 600;
     letter-spacing: 0.05em;
@@ -296,13 +308,17 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     font-size: 0.75rem;
 }
 
-.login #page .password-reset-link {
+.login #page .password-reset-link,
+.logout #page .password-reset-link {
     border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
 .login #page input[type="text"],
 .login #page input[type="password"],
-.login #page input[type="email"] {
+.login #page input[type="email"],
+.logout #page input[type="text"],
+.logout #page input[type="password"],
+.logout #page input[type="email"] {
     background: rgba(15, 23, 42, 0.06);
     border: 1px solid rgba(99, 102, 241, 0.25);
     border-radius: 0.8rem;
@@ -317,7 +333,10 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 .login #page input[type="text"]:focus,
 .login #page input[type="password"]:focus,
-.login #page input[type="email"]:focus {
+.login #page input[type="email"]:focus,
+.logout #page input[type="text"]:focus,
+.logout #page input[type="password"]:focus,
+.logout #page input[type="email"]:focus {
     border-color: rgba(99, 102, 241, 0.65);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }

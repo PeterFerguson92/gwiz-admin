@@ -15,6 +15,10 @@ environ.Env.read_env(os.path.join(BASE_DIR, "dev.env"))
 print("USING " + env("ENVIROMENT") + " SETTINGS")
 IS_DEV = env("ENVIROMENT") == "DEV"
 
+LOG_LEVEL = env("LOG_LEVEL", default=os.environ.get("LOG_LEVEL", "INFO")).upper()
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("ENABLE_DEBUG") == "True"
@@ -61,7 +65,7 @@ ROOT_URLCONF = "gwiz_admin.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -455,29 +459,61 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "app": {
+        "console": {
             "format": "[%(asctime)s] %(levelname)s %(name)s: %(message)s",
-        }
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+        "verbose": {
+            "format": "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "app",
-        }
+            "level": LOG_LEVEL,
+            "formatter": "console",
+        },
+        "app_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": LOG_LEVEL,
+            "formatter": "verbose",
+            "filename": str(LOG_DIR / "application.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 3,
+        },
+        "request_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "INFO",
+            "formatter": "verbose",
+            "filename": str(LOG_DIR / "requests.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 3,
+        },
     },
     "root": {
-        "handlers": ["console"],
-        "level": "INFO",
+        "handlers": ["console", "app_file"],
+        "level": LOG_LEVEL,
     },
     "loggers": {
+        "django": {
+            "handlers": ["console", "app_file"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console", "request_file"],
+            "level": "ERROR",
+            "propagate": False,
+        },
         "booking": {
-            "handlers": ["console"],
-            "level": "INFO",
+            "handlers": ["console", "app_file"],
+            "level": LOG_LEVEL,
             "propagate": False,
         },
         "notifications": {
-            "handlers": ["console"],
-            "level": "INFO",
+            "handlers": ["console", "app_file"],
+            "level": LOG_LEVEL,
             "propagate": False,
         },
     },

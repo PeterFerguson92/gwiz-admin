@@ -1,0 +1,31 @@
+{% extends "unfold/layouts/unauthenticated.html" %}
+{% load i18n unfold %}
+
+{% block bodyclass %}{{ block.super }} logout{% endblock %}
+
+{% block title %}
+    {% translate "Logged out" %} | {{ site_title }}
+{% endblock %}
+
+{% block content %}
+    {% include "unfold/helpers/unauthenticated_title.html" with title=site_title|default:_("FSxCG Admin") subtitle=_("See you soon!") %}
+
+    <div class="rounded-[32px] bg-white/95 dark:bg-base-900/85 shadow-2xl p-8 text-center space-y-5 border border-base-200/70 dark:border-white/5">
+        <p class="text-base-content/80 dark:text-base-200 font-semibold text-lg leading-6">
+            {% translate "You have been successfully logged out from the administration" %}
+        </p>
+        <p class="text-base-content/60 dark:text-base-300 text-sm">
+            {% translate "Thanks for spending some quality time with the web site today." %}
+        </p>
+
+        {% url 'admin:index' as login_url %}
+        {% component "unfold/components/button.html" with href=login_url variant="primary" class="w-full justify-center items-center gap-2" %}
+            {% translate "Log in again" %}
+            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        {% endcomponent %}
+
+        <p class="tracking-[0.65em] text-base-content/60 dark:text-base-400 uppercase text-xs font-semibold">
+            FSxCG
+        </p>
+    </div>
+{% endblock %}
