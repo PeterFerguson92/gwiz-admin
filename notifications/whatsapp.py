@@ -173,17 +173,19 @@ def send_booking_confirmation(booking) -> bool:
 
     user = booking.user
     class_name, date_str, time_str = _format_session_details(booking)
-    template_sid = getattr(settings, "TWILIO_WHATSAPP_CONFIRM_TEMPLATE_SID", "")
+    template_sid = getattr(settings, "TWILIO_WHATSAPP_TEMPLATE_SID", "")
+    event_label = "confirmed"
     template_vars = {
-        "1": _format_user_name(user),
-        "2": class_name,
-        "3": date_str,
-        "4": time_str,
+        "1": event_label,
+        "2": _format_user_name(user),
+        "3": class_name,
+        "4": date_str,
+        "5": time_str,
     }
     # Provide a simple body fallback for sandbox/dev testing.
     body = (
-        f"Hi {_format_user_name(user)}, your spot for {class_name} on "
-        f"{date_str} at {time_str} is confirmed. See you soon!"
+        f"Hi {_format_user_name(user)}, your booking for {class_name} on "
+        f"{date_str} at {time_str} is {event_label}. See you soon!"
     )
     result = send_whatsapp_message(
         to_number=user.phone_number,
@@ -208,16 +210,18 @@ def send_booking_cancellation(booking) -> bool:
 
     user = booking.user
     class_name, date_str, time_str = _format_session_details(booking)
-    template_sid = getattr(settings, "TWILIO_WHATSAPP_CANCEL_TEMPLATE_SID", "")
+    template_sid = getattr(settings, "TWILIO_WHATSAPP_TEMPLATE_SID", "")
+    event_label = "cancelled"
     template_vars = {
-        "1": _format_user_name(user),
-        "2": class_name,
-        "3": date_str,
-        "4": time_str,
+        "1": event_label,
+        "2": _format_user_name(user),
+        "3": class_name,
+        "4": date_str,
+        "5": time_str,
     }
     body = (
         f"Hi {_format_user_name(user)}, your booking for {class_name} on "
-        f"{date_str} at {time_str} has been cancelled. "
+        f"{date_str} at {time_str} has been {event_label}. "
         "Reach out if you need help booking another session."
     )
     result = send_whatsapp_message(

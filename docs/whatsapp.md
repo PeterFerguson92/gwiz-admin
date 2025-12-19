@@ -26,8 +26,7 @@ WHATSAPP_NOTIFICATIONS_ENABLED=True
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=********************************
 TWILIO_WHATSAPP_FROM=+441234567890
-TWILIO_WHATSAPP_CONFIRM_TEMPLATE_SID=HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_WHATSAPP_CANCEL_TEMPLATE_SID=HXyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+TWILIO_WHATSAPP_TEMPLATE_SID=HXmemberStatusAAAAAAAAAAAAAAA
 TWILIO_WHATSAPP_ADMIN_RECIPIENTS=+441234567890,+441234567891
 TWILIO_WHATSAPP_ADMIN_TEMPLATE_SID=HXadminStatusZZZZZZZZZZZZ
 ```
@@ -36,6 +35,17 @@ TWILIO_WHATSAPP_ADMIN_TEMPLATE_SID=HXadminStatusZZZZZZZZZZZZ
 prefixes it with `whatsapp:`). The helper falls back to sending plain-text bodies
 if a template SID is missing, but Meta will reject those outside the 24‑hour
 session window—only template sends will clear that restriction.
+
+Create a single member template (`TWILIO_WHATSAPP_TEMPLATE_SID`) with five
+variables in this order:
+
+1. event label (`confirmed` / `cancelled`)
+2. member name
+3. class name
+4. session date
+5. session time
+
+Example body: `Hi {{2}}, your booking for {{3}} on {{4}} at {{5}} is {{1}}.`
 
 `TWILIO_WHATSAPP_ADMIN_RECIPIENTS` is a comma‑separated list of numbers that
 should receive booking status alerts (confirmations and cancellations). Those
