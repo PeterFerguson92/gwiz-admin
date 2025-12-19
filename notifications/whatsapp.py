@@ -51,6 +51,69 @@ def _format_session_details(booking) -> tuple[str, str, str]:
     return class_name, date_str, time_str
 
 
+def _get_admin_recipients() -> list[str]:
+    raw = getattr(settings, "TWILIO_WHATSAPP_ADMIN_RECIPIENTS", [])
+    if isinstance(raw, str):
+        raw = [raw]
+    recipients = []
+    for number in raw:
+        if number:
+            recipients.append(number.strip())
+    return recipients
+
+
+def _session_capacity_summary(booking) -> tuple[int, int]:
+    session = booking.class_session
+    capacity = session.capacity_override or session.fitness_class.capacity
+    booked_count = session.bookings.filter(status=booking.STATUS_BOOKED).count()
+    return booked_count, capacity
+
+
+def _notify_admins_of_booking_event(booking, event: str) -> None:
+    recipients = _get_admin_recipients()
+    if not recipients:
+        logger.debug(
+            "No admin WhatsApp recipients configured; skipping %s alert.", event
+        )
+        return
+
+    event_label = event
+    user_name = _format_user_name(booking.user)
+    class_name, date_str, time_str = _format_session_details(booking)
+    booked_count, capacity = _session_capacity_summary(booking)
+    summary = f"{booked_count}/{capacity}"
+    body = (
+        f"Booking {event_label}: {user_name} for {class_name} on "
+        f"{date_str} at {time_str}. Currently {summary} spots booked."
+    )
+
+    template_sid = getattr(settings, "TWILIO_WHATSAPP_ADMIN_TEMPLATE_SID", "")
+
+    template_vars = {
+        "1": event_label,
+        "2": user_name,
+        "3": class_name,
+        "4": date_str,
+        "5": time_str,
+        "6": summary,
+    }
+
+    for number in recipients:
+        success = send_whatsapp_message(
+            to_number=number,
+            body=body,
+            template_sid=template_sid or None,
+            template_vars=template_vars if template_sid else None,
+        )
+        logger.info(
+            "Sent admin WhatsApp %s notification for booking %s to %s: %s",
+            event,
+            booking.id,
+            number,
+            "ok" if success else "failed",
+        )
+
+
 def send_whatsapp_message(
     *,
     to_number: str,
@@ -122,12 +185,14 @@ def send_booking_confirmation(booking) -> bool:
         f"Hi {_format_user_name(user)}, your spot for {class_name} on "
         f"{date_str} at {time_str} is confirmed. See you soon!"
     )
-    return send_whatsapp_message(
+    result = send_whatsapp_message(
         to_number=user.phone_number,
         body=body,
         template_sid=template_sid or None,
         template_vars=template_vars,
     )
+    _notify_admins_of_booking_event(booking, "confirmed")
+    return result
 
 
 def send_booking_cancellation(booking) -> bool:
@@ -155,9 +220,11 @@ def send_booking_cancellation(booking) -> bool:
         f"{date_str} at {time_str} has been cancelled. "
         "Reach out if you need help booking another session."
     )
-    return send_whatsapp_message(
+    result = send_whatsapp_message(
         to_number=user.phone_number,
         body=body,
         template_sid=template_sid or None,
         template_vars=template_vars,
     )
+    _notify_admins_of_booking_event(booking, "cancelled")
+    return result
