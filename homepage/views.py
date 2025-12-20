@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework import generics, status
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from homepage.models import (
@@ -29,6 +30,7 @@ from homepage.serializers import (
 # BANNER VIEWS.
 class BannerListView(generics.GenericAPIView):
     serializer_class = BannerSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request):
         objects = Banner.objects.all()
@@ -43,6 +45,7 @@ class BannerListView(generics.GenericAPIView):
 
 class BannerDetailView(generics.GenericAPIView):
     serializer_class = BannerSerializer
+    permission_classes = [AllowAny]
 
     def get_object(self, pk):
         try:
@@ -64,6 +67,7 @@ class BannerDetailView(generics.GenericAPIView):
 # ABOUT US VIEWS.
 class AboutUsListView(generics.GenericAPIView):
     serializer_class = AboutUsSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request):
         objects = AboutUs.objects.all()
@@ -78,6 +82,7 @@ class AboutUsListView(generics.GenericAPIView):
 
 class AboutUsDetailView(generics.GenericAPIView):
     serializer_class = AboutUsSerializer
+    permission_classes = [AllowAny]
 
     def get_object(self, pk):
         try:
@@ -99,6 +104,7 @@ class AboutUsDetailView(generics.GenericAPIView):
 # TRAINER VIEWS.
 class TrainerListView(generics.GenericAPIView):
     serializer_class = TrainerSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request):
         objects = Trainer.objects.all()
@@ -113,6 +119,7 @@ class TrainerListView(generics.GenericAPIView):
 
 class TrainerDetailView(generics.GenericAPIView):
     serializer_class = TrainerSerializer
+    permission_classes = [AllowAny]
 
     def get_object(self, pk):
         try:
@@ -134,6 +141,7 @@ class TrainerDetailView(generics.GenericAPIView):
 # TEAM VIEWS.
 class TeamListView(generics.GenericAPIView):
     serializer_class = TeamSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request):
         objects = Team.objects.all()
@@ -148,6 +156,7 @@ class TeamListView(generics.GenericAPIView):
 
 class TeamDetailView(generics.GenericAPIView):
     serializer_class = TeamSerializer
+    permission_classes = [AllowAny]
 
     def get_object(self, pk):
         try:
@@ -169,6 +178,7 @@ class TeamDetailView(generics.GenericAPIView):
 # SERVICE VIEWS.
 class ServiceListView(generics.GenericAPIView):
     serializer_class = ServiceSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request):
         objects = Service.objects.all()
@@ -183,6 +193,7 @@ class ServiceListView(generics.GenericAPIView):
 
 class ServiceDetailView(generics.GenericAPIView):
     serializer_class = ServiceSerializer
+    permission_classes = [AllowAny]
 
     def get_object(self, pk):
         try:
@@ -204,6 +215,7 @@ class ServiceDetailView(generics.GenericAPIView):
 # FAQ VIEWS.
 class FaqListView(generics.GenericAPIView):
     serializer_class = FaqSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request):
         objects = Faq.objects.all()
@@ -218,6 +230,7 @@ class FaqListView(generics.GenericAPIView):
 
 class FaqDetailView(generics.GenericAPIView):
     serializer_class = FaqSerializer
+    permission_classes = [AllowAny]
 
     def get_object(self, pk):
         try:
@@ -239,6 +252,7 @@ class FaqDetailView(generics.GenericAPIView):
 # CONTACT VIEWS.
 class ContactListView(generics.GenericAPIView):
     serializer_class = ContactSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request):
         objects = Contact.objects.all()
@@ -253,6 +267,7 @@ class ContactListView(generics.GenericAPIView):
 
 class ContactDetailView(generics.GenericAPIView):
     serializer_class = ContactSerializer
+    permission_classes = [AllowAny]
 
     def get_object(self, pk):
         try:
@@ -274,6 +289,7 @@ class ContactDetailView(generics.GenericAPIView):
 # FOOTER VIEWS.
 class FooterListView(generics.GenericAPIView):
     serializer_class = FooterSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request):
         objects = Footer.objects.all()
@@ -288,6 +304,7 @@ class FooterListView(generics.GenericAPIView):
 
 class FooterDetailView(generics.GenericAPIView):
     serializer_class = FooterSerializer
+    permission_classes = [AllowAny]
 
     def get_object(self, pk):
         try:
@@ -309,6 +326,7 @@ class FooterDetailView(generics.GenericAPIView):
 # HOMEPAGE VIEWS.
 class HomepageListView(generics.GenericAPIView):
     serializer_class = HomepageSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request):
         objects = Homepage.objects.all()
@@ -323,6 +341,7 @@ class HomepageListView(generics.GenericAPIView):
 
 class HomepageDetailView(generics.GenericAPIView):
     serializer_class = HomepageSerializer
+    permission_classes = [AllowAny]
 
     def get_object(self, pk):
         try:
