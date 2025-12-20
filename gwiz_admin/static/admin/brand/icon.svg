@@ -1,0 +1,10 @@
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gwiz symbol">
+  <defs>
+    <linearGradient id="gwizIconGradient" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#14B8A6"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="24" fill="#0f172a"/>
+  <path d="M26 62L34 34H44L50 50L56 34H66L74 62H63L60 48L52 70H47L39 48L36 62H26Z" fill="url(#gwizIconGradient)"/>
+</svg>

@@ -1,0 +1,115 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'booking/css/grouped_sessions.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="grouped-toolbar">
+  <div class="grouped-toolbar__actions">
+    <div>
+      <h1>Class sessions grouped by fitness class</h1>
+      <p>Quickly review upcoming sessions and jump into bookings & attendance.</p>
+    </div>
+    <div class="grouped-toolbar__buttons">
+      <a href="{% url 'admin:booking_classsession_changelist' %}" class="button button-primary">↩︎ Back to default view</a>
+      <a href="{% url 'admin:booking_recurrencerule_changelist' %}" class="button button-secondary">🔄 Generate sessions</a>
+    </div>
+  </div>
+
+  <form method="get" class="grouped-toolbar__filters">
+    <div>
+      <label>Search by fitness class</label>
+      <input type="text" name="q" value="{{ query }}" placeholder="e.g. Beginner Strength">
+    </div>
+    <div>
+      <label>Status</label>
+      <select name="status">
+        <option value="">All</option>
+        {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <button type="submit" class="button button-primary">🔎 Apply filters</button>
+    </div>
+  </form>
+</div>
+
+<p class="grouped-toolbar__hint">
+  Sessions are ordered with the most recent dates first within each class.
+  Click a class header to expand or collapse its sessions.
+</p>
+
+{% if not groups %}
+  <p>No sessions found.</p>
+{% else %}
+  <div id="grouped-sessions">
+    {% for class_name, sessions in groups %}
+      <div class="session-group">
+        <div class="session-group-header" data-group-toggle>
+          <div>{{ class_name }}</div>
+          <div>
+            {{ sessions|length }} session{% if sessions|length != 1 %}s{% endif %}
+            <span>▼</span>
+          </div>
+        </div>
+
+        <div class="session-group-body">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Bookings / Attendance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in sessions %}
+                {% url 'admin:booking_classsession_change' s.pk as session_change_url %}
+                {% url 'admin:booking_booking_changelist' as booking_changelist_url %}
+                <tr onclick="window.location.href='{{ session_change_url }}';">
+                  <td>
+                    <a href="{{ session_change_url }}">{{ s.date|date:"l, d M Y" }}</a>
+                  </td>
+                  <td>
+                    <a href="{{ session_change_url }}">{{ s.start_time|time:"h:i A" }} → {{ s.end_time|time:"h:i A" }}</a>
+                  </td>
+                  <td>
+                    <span class="session-status {{ s.status }}">
+                      {{ s.get_status_display }}
+                    </span>
+                  </td>
+                  <td>
+                    <a href="{{ booking_changelist_url }}?class_session__id__exact={{ s.pk }}" onclick="event.stopPropagation();">
+                      View bookings &amp; attendance
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("[data-group-toggle]").forEach(function (header) {
+      header.addEventListener("click", function () {
+        const group = header.closest(".session-group");
+        if (!group) return;
+        group.classList.toggle("collapsed");
+      });
+    });
+  });
+</script>
+
+{% endblock %}

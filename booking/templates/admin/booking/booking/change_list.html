@@ -1,0 +1,56 @@
+{% extends "admin/change_list.html" %} {% load admin_list %} {% block search %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem">
+	<div style="flex: 1 1 260px">{# Standard Django admin search form #} {% search_form cl %}</div>
+
+	<div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center">
+		{# --- Month info label --- #}
+		<span style="color: #6b7280; font-size: 0.85rem">
+			Export month: {% if request.GET.class_session__date__year and request.GET.class_session__date__month %}
+			<strong>{{ request.GET.class_session__date__year }}-{{ request.GET.class_session__date__month }}</strong>
+			{% else %}
+			<strong>current month</strong>
+			{% endif %}
+		</span>
+
+		{# --- Attendance actions (trigger admin actions) --- #}
+		<a href="#" onclick="runAttendanceAction('mark_present'); return false;" class="button" style="padding: 0.35rem 0.8rem; font-size: 0.85rem"> Mark all present </a>
+
+		<a href="#" onclick="runAttendanceAction('mark_absent'); return false;" class="button" style="padding: 0.35rem 0.8rem; font-size: 0.85rem"> Mark all absent </a>
+
+		<a href="#" onclick="runAttendanceAction('mark_no_show'); return false;" class="button" style="padding: 0.35rem 0.8rem; font-size: 0.85rem"> Mark all no-show </a>
+
+		{# --- Export this specific session (only if filtered by session) --- #} {% if request.GET.class_session__id__exact %}
+		<a
+			href="/admin/booking/booking/session-attendance-report/?class_session__id__exact={{ request.GET.class_session__id__exact }}"
+			class="button"
+			style="padding: 0.35rem 0.8rem; font-size: 0.85rem"
+		>
+			Export this session CSV
+		</a>
+		{% endif %} {# --- Export full month (respects *all* filters) --- #}
+		<a href="/admin/booking/booking/monthly-attendance-report/?{{ request.GET.urlencode }}" class="button" style="padding: 0.35rem 0.8rem; font-size: 0.85rem">
+			Export Month CSV
+		</a>
+	</div>
+</div>
+
+{% endblock search %} {% block extrahead %} {{ block.super }}
+<script>
+	function runAttendanceAction(actionName) {
+		const form = document.getElementById("changelist-form");
+		if (!form) return;
+
+		const select = form.querySelector('select[name="action"]');
+		if (!select) return;
+
+		// Select all visible rows on this page
+		form.querySelectorAll("input.action-select").forEach((cb) => {
+			cb.checked = true;
+		});
+
+		select.value = actionName;
+		form.submit();
+	}
+</script>
+{% endblock %}

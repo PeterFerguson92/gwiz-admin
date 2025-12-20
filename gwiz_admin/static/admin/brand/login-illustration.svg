@@ -1,0 +1,18 @@
+<svg width="640" height="900" viewBox="0 0 640 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gwiz abstract illustration">
+  <defs>
+    <linearGradient id="gwizLoginA" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="gwizLoginB" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="900" fill="url(#gwizLoginA)"/>
+  <circle cx="520" cy="160" r="120" fill="url(#gwizLoginB)" opacity="0.45"/>
+  <circle cx="140" cy="240" r="180" fill="url(#gwizLoginB)" opacity="0.25"/>
+  <path d="M120 780C200 700 300 700 420 820C500 900 640 880 640 880V900H0V820C30 820 70 830 120 780Z" fill="#0B1120"/>
+  <path d="M160 620C160 548 218 490 290 490C342 490 390 518 410 562L470 700H386L366 650C346 600 308 600 280 650L260 690L216 700L160 620Z" fill="url(#gwizLoginB)" opacity="0.8"/>
+  <circle cx="296" cy="420" r="78" fill="url(#gwizLoginB)" opacity="0.7"/>
+</svg>

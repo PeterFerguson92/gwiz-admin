@@ -1,0 +1,30 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+  <div style="
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 1rem;
+  ">
+    <a
+      href="{% url 'admin:booking_classsession_grouped' %}"
+      class="button button-primary"
+      style="
+        padding: 0.55rem 1.3rem;
+        border-radius: 999px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        cursor: pointer;
+        text-decoration: none;
+      "
+    >
+      <span>📊</span>
+      <span>Grouped view by fitness class</span>
+    </a>
+  </div>
+
+  {{ block.super }}
+{% endblock %}

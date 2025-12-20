@@ -4,20 +4,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0016_remove_homepage_team_aboutus_team'),
+        ("homepage", "0016_remove_homepage_team_aboutus_team"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='team',
-            name='description',
-            field=models.TextField(blank=True, null=True, verbose_name='Description'),
+            model_name="team",
+            name="description",
+            field=models.TextField(blank=True, null=True, verbose_name="Description"),
         ),
         migrations.AddField(
-            model_name='team',
-            name='header',
-            field=models.CharField(default='Meet our Trainers', max_length=255, verbose_name='Header'),
+            model_name="team",
+            name="header",
+            field=models.CharField(
+                default="Meet our Trainers", max_length=255, verbose_name="Header"
+            ),
         ),
     ]

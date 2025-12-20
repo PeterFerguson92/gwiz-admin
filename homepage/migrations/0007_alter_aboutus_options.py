@@ -4,14 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0006_alter_aboutus_about_us_section_image2'),
+        ("homepage", "0006_alter_aboutus_about_us_section_image2"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='aboutus',
-            options={'ordering': ('created_at',), 'verbose_name': 'About Us', 'verbose_name_plural': 'About Us'},
+            name="aboutus",
+            options={
+                "ordering": ("created_at",),
+                "verbose_name": "About Us",
+                "verbose_name_plural": "About Us",
+            },
         ),
     ]

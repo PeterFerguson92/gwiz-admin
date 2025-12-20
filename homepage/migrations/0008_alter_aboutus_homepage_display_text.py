@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0007_alter_aboutus_options'),
+        ("homepage", "0007_alter_aboutus_options"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='aboutus',
-            name='homepage_display_text',
-            field=models.TextField(verbose_name='Homepage Display Text'),
+            model_name="aboutus",
+            name="homepage_display_text",
+            field=models.TextField(verbose_name="Homepage Display Text"),
         ),
     ]

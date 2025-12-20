@@ -5,19 +5,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0015_homepage_team'),
+        ("homepage", "0015_homepage_team"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='homepage',
-            name='team',
+            model_name="homepage",
+            name="team",
         ),
         migrations.AddField(
-            model_name='aboutus',
-            name='team',
-            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='homepage.team'),
+            model_name="aboutus",
+            name="team",
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="homepage.team",
+            ),
         ),
     ]

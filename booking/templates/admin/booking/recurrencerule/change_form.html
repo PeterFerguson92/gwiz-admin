@@ -1,0 +1,47 @@
+{% extends "admin/change_form.html" %} {% load i18n %} {# Big CTA button above the form #} {% block content %} {% if original.pk %}
+<div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem">
+	<a
+		href="{% url 'admin:booking_recurrencerule_generate_sessions' original.pk %}"
+		class="button button-primary"
+		style="padding: 0.65rem 1.4rem; font-weight: 600; border-radius: 9999px; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.4rem"
+	>
+		<span>🔄</span>
+		<span>{% trans 'Generate sessions' %}</span>
+	</a>
+</div>
+{% endif %} {{ block.super }}
+
+<script>
+	(function () {
+		function updateDaysVisibility() {
+			var typeSelect = document.getElementById("id_recurrence_type");
+			var daysField = document.getElementById("id_days_of_week");
+			if (!typeSelect || !daysField) return;
+
+			var wrapper = daysField.closest("div"); // Unfold wraps field nicely
+			if (!wrapper) return;
+
+			var value = typeSelect.value;
+			var shouldShow = value === "weekly" || value === "multi_weekly";
+
+			wrapper.style.display = shouldShow ? "" : "none";
+
+			// If we hide it, also clear any checked boxes
+			if (!shouldShow) {
+				var checkboxes = wrapper.querySelectorAll('input[type="checkbox"]');
+				checkboxes.forEach(function (cb) {
+					cb.checked = false;
+				});
+			}
+		}
+
+		document.addEventListener("DOMContentLoaded", function () {
+			var typeSelect = document.getElementById("id_recurrence_type");
+			if (!typeSelect) return;
+
+			updateDaysVisibility();
+			typeSelect.addEventListener("change", updateDaysVisibility);
+		});
+	})();
+</script>
+{% endblock %}

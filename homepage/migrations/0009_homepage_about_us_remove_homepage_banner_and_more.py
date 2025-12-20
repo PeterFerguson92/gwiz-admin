@@ -5,24 +5,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0008_alter_aboutus_homepage_display_text'),
+        ("homepage", "0008_alter_aboutus_homepage_display_text"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='homepage',
-            name='about_us',
-            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='homepage.aboutus'),
+            model_name="homepage",
+            name="about_us",
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="homepage.aboutus",
+            ),
         ),
         migrations.RemoveField(
-            model_name='homepage',
-            name='banner',
+            model_name="homepage",
+            name="banner",
         ),
         migrations.AddField(
-            model_name='homepage',
-            name='banner',
-            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='homepage.banner'),
+            model_name="homepage",
+            name="banner",
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="homepage.banner",
+            ),
         ),
     ]
