@@ -80,25 +80,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "gwiz_admin.wsgi.application"
 
-# Database
-if IS_DEV:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
+# Database (always Postgres, values pulled from env)
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": env("PGDATABASE"),
+        "USER": env("PGUSER"),
+        "PASSWORD": env("PGPASSWORD"),
+        "HOST": env("PGHOST"),
+        "PORT": env("PGPORT"),
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("PGDATABASE"),
-            "USER": env("PGUSER"),
-            "PASSWORD": env("PGPASSWORD"),
-            "HOST": env("PGHOST"),
-            "PORT": env("PGPORT"),
-        }
-    }
+}
 
 AUTH_USER_MODEL = "accounts.User"
 
