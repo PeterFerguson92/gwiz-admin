@@ -45,6 +45,20 @@ class UpcomingEventListView(generics.ListAPIView):
         return qs.order_by("-is_featured", "featured_order", "start_datetime", "name")
 
 
+class ActiveEventListView(generics.ListAPIView):
+    """
+    Public list of all active events (no date filter).
+    """
+
+    serializer_class = EventSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return Event.objects.filter(is_active=True).order_by(
+            "-is_featured", "featured_order", "start_datetime", "name"
+        )
+
+
 class EventDetailView(generics.RetrieveAPIView):
     serializer_class = EventSerializer
     permission_classes = [AllowAny]

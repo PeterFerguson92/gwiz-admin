@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    ActiveEventListView,
     CancelTicketView,
     EventDetailView,
     MyTicketsListView,
@@ -11,6 +12,7 @@ from .views import (
 
 urlpatterns = [
     path("", UpcomingEventListView.as_view(), name="event-list"),
+    path("active/", ActiveEventListView.as_view(), name="active-event-list"),
     path("<uuid:pk>/", EventDetailView.as_view(), name="event-detail"),
     path(
         "<uuid:event_id>/tickets/",
