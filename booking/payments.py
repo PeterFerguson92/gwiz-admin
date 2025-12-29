@@ -80,7 +80,10 @@ def create_payment_intent_for_booking(booking):
         "currency": getattr(settings, "STRIPE_CURRENCY", "usd"),
         "metadata": metadata,
         "description": _payment_description(booking),
-        "automatic_payment_methods": {"enabled": True},
+        "automatic_payment_methods": {
+            "enabled": True,
+            "allow_redirects": "never",  # avoid return_url requirement in CLI/local tests
+        },
     }
 
     email = getattr(booking.user, "email", "")

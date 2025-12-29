@@ -4,6 +4,7 @@ from unfold.admin import ModelAdmin
 
 from homepage.models import (
     AboutUs,
+    Assets,
     Banner,
     Contact,
     Faq,
@@ -140,6 +141,49 @@ class AboutUsAdmin(ModelAdmin):
         from django.shortcuts import redirect
 
         instance = AboutUs.objects.first()
+        if instance:
+            return redirect(
+                f"/admin/{self.model._meta.app_label}/{self.model._meta.model_name}/{instance.id}/change/"
+            )
+        return super().changelist_view(request, extra_context)
+
+
+@admin.register(Assets)
+class AssetsAdmin(ModelAdmin):
+    list_display = ("id", "created_at")
+    readonly_fields = ("created_at",)
+    fieldsets = [
+        (
+            "Covers",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (
+                    "login_cover",
+                    "personal_area_cover",
+                    "main_events_cover",
+                    "main_classes_cover",
+                    "personal_tickets_cover",
+                    "personal_bookings_cover",
+                    "contact_us_cover",
+                ),
+            },
+        ),
+        (
+            "Meta",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("created_at",),
+            },
+        ),
+    ]
+
+    def has_add_permission(self, request):
+        return not Assets.objects.exists()
+
+    def changelist_view(self, request, extra_context=None):
+        from django.shortcuts import redirect
+
+        instance = Assets.objects.first()
         if instance:
             return redirect(
                 f"/admin/{self.model._meta.app_label}/{self.model._meta.model_name}/{instance.id}/change/"
@@ -417,3 +461,40 @@ class HomepageAdmin(ModelAdmin):
                 f"/admin/{self.model._meta.app_label}/{self.model._meta.model_name}/{instance.id}/change/"
             )
         return super().changelist_view(request, extra_context)
+
+    def _image_preview(self, obj, field):
+        img = getattr(obj, field, None)
+        if not img:
+            return "—"
+        return format_html(
+            '<img src="{}" style="max-width: 180px; height: auto;" />', img.url
+        )
+
+    def login_cover_preview(self, obj):
+        return self._image_preview(obj, "login_cover")
+
+    def personal_area_cover_preview(self, obj):
+        return self._image_preview(obj, "personal_area_cover")
+
+    def main_events_cover_preview(self, obj):
+        return self._image_preview(obj, "main_events_cover")
+
+    def main_classes_cover_preview(self, obj):
+        return self._image_preview(obj, "main_classes_cover")
+
+    def personal_tickets_cover_preview(self, obj):
+        return self._image_preview(obj, "personal_tickets_cover")
+
+    def personal_bookings_cover_preview(self, obj):
+        return self._image_preview(obj, "personal_bookings_cover")
+
+    def contact_us_cover_preview(self, obj):
+        return self._image_preview(obj, "contact_us_cover")
+
+    login_cover_preview.short_description = "Login cover"
+    personal_area_cover_preview.short_description = "Personal area"
+    main_events_cover_preview.short_description = "Main events"
+    main_classes_cover_preview.short_description = "Main classes"
+    personal_tickets_cover_preview.short_description = "Personal tickets"
+    personal_bookings_cover_preview.short_description = "Personal bookings"
+    contact_us_cover_preview.short_description = "Contact us"

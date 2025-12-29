@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "homepage",
     "accounts",
     "booking",
+    "events",
     "drf_spectacular",
     "drf_spectacular_sidecar",
 ]
@@ -261,6 +262,16 @@ UNFOLD = {
                 "collapsible": True,
                 "items": [
                     {
+                        "title": "Events",
+                        "icon": "event",
+                        "link": reverse_lazy("admin:events_event_changelist"),
+                    },
+                    {
+                        "title": "Event tickets",
+                        "icon": "confirmation_number",
+                        "link": reverse_lazy("admin:events_eventticket_changelist"),
+                    },
+                    {
                         "title": "Fitness classes",
                         "icon": "fitness_center",
                         "link": reverse_lazy("admin:booking_fitnessclass_changelist"),
@@ -298,6 +309,11 @@ UNFOLD = {
                 "collapsible": True,
                 "separator": True,
                 "items": [
+                    {
+                        "title": "Assets",
+                        "icon": "photo_library",
+                        "link": reverse_lazy("admin:homepage_assets_changelist"),
+                    },
                     {
                         "title": "Homepage",
                         "icon": "home",
@@ -438,6 +454,10 @@ SENDGRID_API_KEY = env(
 DEFAULT_FROM_EMAIL = env(
     "DEFAULT_FROM_EMAIL",
     default=os.environ.get("DEFAULT_FROM_EMAIL", "webmaster@localhost"),
+)
+SENDGRID_TICKET_TEMPLATE_ID = env(
+    "SENDGRID_TICKET_TEMPLATE_ID",
+    default=os.environ.get("SENDGRID_TICKET_TEMPLATE_ID", ""),
 )
 
 

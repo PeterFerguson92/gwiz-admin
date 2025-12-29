@@ -3,6 +3,8 @@ from django.urls import path
 from homepage.views import (
     AboutUsDetailView,
     AboutUsListView,
+    AssetsDetailView,
+    AssetsListView,
     BannerDetailView,
     BannerListView,
     ContactDetailView,
@@ -36,4 +38,8 @@ urlpatterns = [
     path("contact/detail/<uuid:pk>", ContactDetailView.as_view()),
     path("footer", FooterListView.as_view()),
     path("footer/detail/<uuid:pk>", FooterDetailView.as_view()),
+    path("assets", AssetsListView.as_view()),
+    path("assets/", AssetsListView.as_view()),  # convenience with trailing slash
+    path("assets/detail/<uuid:pk>", AssetsDetailView.as_view()),
+    path("assets/detail/<uuid:pk>/", AssetsDetailView.as_view()),  # trailing slash
 ]

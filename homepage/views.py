@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from homepage.models import (
     AboutUs,
+    Assets,
     Banner,
     Contact,
     Faq,
@@ -16,6 +17,7 @@ from homepage.models import (
 )
 from homepage.serializers import (
     AboutUsSerializer,
+    AssetsSerializer,
     BannerSerializer,
     ContactSerializer,
     FaqSerializer,
@@ -320,6 +322,43 @@ class FooterDetailView(generics.GenericAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         serializer = self.serializer_class(object)
+        return Response({"status": "success", "result": serializer.data})
+
+
+# ASSETS VIEWS
+class AssetsListView(generics.GenericAPIView):
+    serializer_class = AssetsSerializer
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        objects = Assets.objects.all()
+        if not objects:
+            return Response(
+                {"status": "No data available"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = self.serializer_class(objects, many=True)
+        return Response({"status": "success", "result": serializer.data})
+
+
+class AssetsDetailView(generics.GenericAPIView):
+    serializer_class = AssetsSerializer
+    permission_classes = [AllowAny]
+
+    def get_object(self, pk):
+        try:
+            return Assets.objects.get(pk=pk)
+        except:
+            return None
+
+    def get(self, request, pk):
+        obj = self.get_object(pk=pk)
+        if obj is None:
+            return Response(
+                {"status": "fail", "message": f"Assets with Id: {pk} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = self.serializer_class(obj)
         return Response({"status": "success", "result": serializer.data})
 
 
