@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import payments
+from .email_utils import send_ticket_cancellation_email, send_ticket_confirmation_email
 from .models import Event, EventTicket
 from .serializer import (
     EventSerializer,
@@ -155,6 +156,9 @@ class PurchaseTicketView(APIView):
             ticket.stripe_payment_intent_id = intent.id
             ticket.save(update_fields=["stripe_payment_intent_id", "updated_at"])
             client_secret = intent.client_secret
+        else:
+            # Free tickets confirm immediately; send confirmation now
+            send_ticket_confirmation_email(ticket)
 
         serializer = EventTicketSerializer(ticket)
         data = serializer.data
@@ -223,9 +227,17 @@ class CancelTicketView(APIView):
         if payment_status_changed:
             update_fields.append("payment_status")
         ticket.save(update_fields=update_fields)
+        cancel_email_sent = send_ticket_cancellation_email(ticket)
+        logger.info(
+            "Ticket %s cancelled by user; email_sent=%s",
+            ticket.id,
+            cancel_email_sent,
+        )
 
         serializer = EventTicketSerializer(ticket)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        data = serializer.data
+        data["cancellation_email_sent"] = cancel_email_sent
+        return Response(data, status=status.HTTP_200_OK)
 
 
 @extend_schema(
@@ -306,7 +318,12 @@ class StripeWebhookView(APIView):
         ticket.payment_status = EventTicket.PAYMENT_PAID
         ticket.status = EventTicket.STATUS_CONFIRMED
         ticket.save(update_fields=["payment_status", "status", "updated_at"])
-        logger.info("Marked ticket %s as paid from Stripe webhook.", ticket.id)
+        email_sent = send_ticket_confirmation_email(ticket)
+        logger.info(
+            "Marked ticket %s as paid from Stripe webhook; email_sent=%s",
+            ticket.id,
+            email_sent,
+        )
 
     def _handle_payment_intent_failed(self, payload: dict) -> None:
         intent_id = payload.get("id")
@@ -334,7 +351,9 @@ class StripeWebhookView(APIView):
         if changed_fields:
             changed_fields.append("updated_at")
             ticket.save(update_fields=changed_fields)
+            email_sent = send_ticket_cancellation_email(ticket)
             logger.info(
-                "Marked ticket %s as cancelled/void due to failed Stripe payment.",
+                "Marked ticket %s as cancelled/void due to failed Stripe payment; email_sent=%s",
                 ticket.id,
+                email_sent,
             )

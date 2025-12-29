@@ -450,6 +450,10 @@ DEFAULT_FROM_EMAIL = env(
     "DEFAULT_FROM_EMAIL",
     default=os.environ.get("DEFAULT_FROM_EMAIL", "webmaster@localhost"),
 )
+SENDGRID_TICKET_TEMPLATE_ID = env(
+    "SENDGRID_TICKET_TEMPLATE_ID",
+    default=os.environ.get("SENDGRID_TICKET_TEMPLATE_ID", ""),
+)
 
 
 FRONTEND_RESET_PASSWORD_URL = env(
