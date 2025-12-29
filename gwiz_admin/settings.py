@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "homepage",
     "accounts",
     "booking",
+    "events",
     "drf_spectacular",
     "drf_spectacular_sidecar",
 ]
@@ -260,6 +261,16 @@ UNFOLD = {
                 "title": "Programs",
                 "collapsible": True,
                 "items": [
+                    {
+                        "title": "Events",
+                        "icon": "event",
+                        "link": reverse_lazy("admin:events_event_changelist"),
+                    },
+                    {
+                        "title": "Event tickets",
+                        "icon": "confirmation_number",
+                        "link": reverse_lazy("admin:events_eventticket_changelist"),
+                    },
                     {
                         "title": "Fitness classes",
                         "icon": "fitness_center",
