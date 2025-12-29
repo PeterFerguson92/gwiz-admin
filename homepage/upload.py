@@ -75,3 +75,39 @@ def contact_background_upload_image_path(instance, filename):
 def footer_logo_upload_image_path(instance, filename):
     ext = get_filename_ext(filename)
     return f"footer/{instance.id}/img{ext}"
+
+
+# assets.
+def assets_login_cover_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"assets/{instance.id}/login_cover{ext}"
+
+
+def assets_personal_area_cover_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"assets/{instance.id}/personal_area_cover{ext}"
+
+
+def assets_main_events_cover_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"assets/{instance.id}/main_events_cover{ext}"
+
+
+def assets_main_classes_cover_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"assets/{instance.id}/main_classes_cover{ext}"
+
+
+def assets_personal_tickets_cover_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"assets/{instance.id}/personal_tickets_cover{ext}"
+
+
+def assets_personal_bookings_cover_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"assets/{instance.id}/personal_bookings_cover{ext}"
+
+
+def assets_contact_us_cover_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"assets/{instance.id}/contact_us_cover{ext}"

@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from homepage.models import (
     AboutUs,
+    Assets,
     Banner,
     Contact,
     Faq,
@@ -77,4 +78,10 @@ class HomepageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Homepage
+        fields = "__all__"
+
+
+class AssetsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Assets
         fields = "__all__"

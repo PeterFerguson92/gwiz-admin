@@ -15,6 +15,13 @@ from homepage.upload import (
     about_us_homepage_upload_image2_path,
     about_us_section_upload_image1_path,
     about_us_section_upload_image2_path,
+    assets_contact_us_cover_upload_image_path,
+    assets_login_cover_upload_image_path,
+    assets_main_classes_cover_upload_image_path,
+    assets_main_events_cover_upload_image_path,
+    assets_personal_area_cover_upload_image_path,
+    assets_personal_bookings_cover_upload_image_path,
+    assets_personal_tickets_cover_upload_image_path,
     contact_background_upload_image_path,
     footer_logo_upload_image_path,
     homepage_logo_upload_image_path,
@@ -337,6 +344,79 @@ class Footer(models.Model):
         ordering = ("id", "created_at")
         verbose_name = "Footer"
         verbose_name_plural = "Footers"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and AboutUs.objects.exists():
+            raise ValueError("Only one instance is allowed.")
+        return super().save(*args, **kwargs)
+
+    def __unicode__(self):
+        return "%s: /n %s %s  %s %s" % (
+            self.id,
+            self.created_at,
+        )
+
+    def __str__(self):
+        return f"{self.id}"
+
+
+class Assets(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    login_cover = ResizedImageField(
+        "login cover",
+        upload_to=assets_login_cover_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
+    personal_area_cover = ResizedImageField(
+        "Personal area cover",
+        upload_to=assets_personal_area_cover_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
+    main_events_cover = ResizedImageField(
+        "Main events cover",
+        upload_to=assets_main_events_cover_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
+    main_classes_cover = ResizedImageField(
+        "Main classes cover",
+        upload_to=assets_main_classes_cover_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
+    personal_tickets_cover = ResizedImageField(
+        "Personal tickets cover",
+        upload_to=assets_personal_tickets_cover_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
+    personal_bookings_cover = ResizedImageField(
+        "Personal bookings cover",
+        upload_to=assets_personal_bookings_cover_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
+    contact_us_cover = ResizedImageField(
+        "Contact us cover",
+        upload_to=assets_contact_us_cover_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
+    created_at = models.DateTimeField("Created at", auto_now_add=True)
+
+    class Meta:
+        ordering = ("id", "created_at")
+        verbose_name = "Assets"
+        verbose_name_plural = "Assets"
 
     def save(self, *args, **kwargs):
         if not self.pk and AboutUs.objects.exists():

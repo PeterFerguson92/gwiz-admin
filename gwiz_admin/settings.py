@@ -310,6 +310,11 @@ UNFOLD = {
                 "separator": True,
                 "items": [
                     {
+                        "title": "Assets",
+                        "icon": "photo_library",
+                        "link": reverse_lazy("admin:homepage_assets_changelist"),
+                    },
+                    {
                         "title": "Homepage",
                         "icon": "home",
                         "link": reverse_lazy("admin:homepage_homepage_changelist"),
