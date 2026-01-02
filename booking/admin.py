@@ -12,7 +12,16 @@ from unfold.admin import ModelAdmin
 
 from booking.services import generate_sessions_for_rule, preview_sessions_for_rule
 
-from .models import Booking, ClassSession, FitnessClass, RecurrenceRule
+from .models import (
+    Booking,
+    ClassSession,
+    FitnessClass,
+    MembershipPlan,
+    MembershipPurchase,
+    MembershipUsage,
+    RecurrenceRule,
+    UserMembership,
+)
 
 # ---------- FitnessClass ---------- #
 
@@ -224,6 +233,128 @@ class RecurrenceRuleAdmin(ModelAdmin):
             "admin/booking/recurrencerule/generate_sessions_confirm.html",
             context,
         )
+
+
+@admin.register(MembershipPlan)
+class MembershipPlanAdmin(ModelAdmin):
+    list_display = (
+        "name",
+        "price",
+        "plan_type",
+        "included_class_sessions",
+        "included_events",
+        "is_active",
+    )
+    list_filter = ("plan_type", "is_active")
+    search_fields = ("name", "description")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (
+            "Plan info",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("name", "description", "plan_type", "is_active"),
+            },
+        ),
+        (
+            "Benefits",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("included_class_sessions", "included_events"),
+            },
+        ),
+        (
+            "Pricing",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("price",),
+            },
+        ),
+        (
+            "Meta",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (("created_at", "updated_at"),),
+            },
+        ),
+    )
+
+
+@admin.register(UserMembership)
+class UserMembershipAdmin(ModelAdmin):
+    list_display = (
+        "user",
+        "plan",
+        "status",
+        "remaining_class_sessions",
+        "remaining_events",
+        "starts_at",
+        "expires_at",
+    )
+    list_filter = ("status", "plan")
+    search_fields = ("user__email", "user__first_name", "user__last_name", "plan__name")
+    autocomplete_fields = ("user", "plan")
+    readonly_fields = ("starts_at", "created_at", "updated_at")
+    fieldsets = (
+        (
+            "Membership",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("user", "plan", "status"),
+            },
+        ),
+        (
+            "Balances",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("remaining_class_sessions", "remaining_events"),
+            },
+        ),
+        (
+            "Dates",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": ("expires_at",),
+            },
+        ),
+        (
+            "Meta",
+            {
+                "classes": ("gwiz-card", "gwiz-grid"),
+                "fields": (("created_at", "updated_at"),),
+            },
+        ),
+    )
+
+
+@admin.register(MembershipUsage)
+class MembershipUsageAdmin(ModelAdmin):
+    list_display = (
+        "membership",
+        "kind",
+        "amount",
+        "reference_id",
+        "reversed",
+        "created_at",
+    )
+    list_filter = ("kind", "reversed")
+    search_fields = ("membership__user__email", "reference_id")
+    readonly_fields = ("created_at",)
+
+
+@admin.register(MembershipPurchase)
+class MembershipPurchaseAdmin(ModelAdmin):
+    list_display = (
+        "user",
+        "plan",
+        "amount",
+        "status",
+        "stripe_payment_intent_id",
+        "created_at",
+    )
+    list_filter = ("status", "plan")
+    search_fields = ("user__email", "plan__name", "stripe_payment_intent_id")
+    readonly_fields = ("created_at", "updated_at")
 
 
 # ---------- ClassSession ---------- #

@@ -2,6 +2,7 @@ import uuid
 
 from django.db import models
 from django.db.models import Q  # make sure this import exists at the top
+from django.utils import timezone
 from django_resized import ResizedImageField
 from storages.backends.s3boto3 import S3Boto3Storage
 
@@ -37,6 +38,11 @@ class FitnessClass(models.Model):
     description = models.TextField()
     genre = models.CharField(max_length=50, choices=GENRE_CHOICES)
     base_price = models.DecimalField(max_digits=8, decimal_places=2)
+    payment_link = models.URLField(
+        max_length=500,
+        blank=True,
+        help_text="Optional external payment/booking link.",
+    )
     payment_link = models.URLField(
         max_length=500,
         blank=True,
@@ -318,3 +324,157 @@ class Booking(models.Model):
     @property
     def is_no_show(self) -> bool:
         return self.attendance_status == self.ATTENDANCE_NO_SHOW
+
+
+class MembershipPlan(models.Model):
+    TYPE_SESSION_BASED = "session_based"
+    TYPE_CHOICES = [
+        (TYPE_SESSION_BASED, "Session based"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    price = models.DecimalField(max_digits=8, decimal_places=2)
+    plan_type = models.CharField(
+        max_length=50,
+        choices=TYPE_CHOICES,
+        default=TYPE_SESSION_BASED,
+    )
+    included_class_sessions = models.PositiveIntegerField(default=0)
+    included_events = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("name",)
+
+    def __str__(self):
+        return self.name
+
+
+class UserMembership(models.Model):
+    STATUS_ACTIVE = "active"
+    STATUS_CANCELLED = "cancelled"
+    STATUS_EXPIRED = "expired"
+
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, "Active"),
+        (STATUS_CANCELLED, "Cancelled"),
+        (STATUS_EXPIRED, "Expired"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="memberships",
+        on_delete=models.CASCADE,
+    )
+    plan = models.ForeignKey(
+        MembershipPlan,
+        related_name="memberships",
+        on_delete=models.PROTECT,
+    )
+    remaining_class_sessions = models.PositiveIntegerField(default=0)
+    remaining_events = models.PositiveIntegerField(default=0)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_ACTIVE,
+    )
+    starts_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.user} – {self.plan.name} ({self.status})"
+
+    @property
+    def is_active_membership(self) -> bool:
+        if self.status != self.STATUS_ACTIVE:
+            return False
+        if self.expires_at and self.expires_at < timezone.now():
+            return False
+        return True
+
+
+class MembershipUsage(models.Model):
+    KIND_CLASS = "class"
+    KIND_EVENT = "event"
+    KIND_CHOICES = [
+        (KIND_CLASS, "Class session"),
+        (KIND_EVENT, "Event ticket"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    membership = models.ForeignKey(
+        UserMembership,
+        related_name="usages",
+        on_delete=models.CASCADE,
+    )
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES)
+    amount = models.PositiveIntegerField(default=1)
+    reference_id = models.UUIDField(
+        null=True,
+        blank=True,
+        help_text="Booking or ticket id this usage is tied to.",
+    )
+    reversed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.kind} usage ({self.amount}) for {self.membership}"
+
+
+class MembershipPurchase(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_PAID = "paid"
+    STATUS_CANCELLED = "cancelled"
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_PAID, "Paid"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="membership_purchases",
+        on_delete=models.CASCADE,
+    )
+    plan = models.ForeignKey(
+        MembershipPlan,
+        related_name="purchases",
+        on_delete=models.PROTECT,
+    )
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+    )
+    stripe_payment_intent_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Stripe PaymentIntent ID for membership purchase.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.plan.name} for {self.user} ({self.status})"
