@@ -25,8 +25,21 @@ DEBUG = env("ENABLE_DEBUG") == "True"
 
 ALLOWED_HOSTS = ["localhost"]
 if not IS_DEV:
-    ALLOWED_HOSTS.append(env("ALLOWED_HOST"))
-    CSRF_TRUSTED_ORIGINS = [env("CSRF_TRUSTED_ORIGIN")]
+    env_allowed_hosts = env.list("ALLOWED_HOSTS", default=None)
+    if env_allowed_hosts:
+        ALLOWED_HOSTS.extend(env_allowed_hosts)
+    else:
+        single_allowed_host = env("ALLOWED_HOST", default=None)
+        if single_allowed_host:
+            ALLOWED_HOSTS.append(single_allowed_host)
+
+    env_csrf_trusted = env.list("CSRF_TRUSTED_ORIGINS", default=None)
+    if env_csrf_trusted:
+        CSRF_TRUSTED_ORIGINS = env_csrf_trusted
+    else:
+        single_csrf_trusted = env("CSRF_TRUSTED_ORIGIN", default=None)
+        if single_csrf_trusted:
+            CSRF_TRUSTED_ORIGINS = [single_csrf_trusted]
 
 # Application definition
 INSTALLED_APPS = [
