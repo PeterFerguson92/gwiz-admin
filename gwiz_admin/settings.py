@@ -25,7 +25,7 @@ DEBUG = env("ENABLE_DEBUG") == "True"
 
 ALLOWED_HOSTS = ["localhost"]
 if not IS_DEV:
-    ALLOWED_HOSTS.append(env("ALLOWED_HOST"))
+    ALLOWED_HOSTS.extend(env.list("ALLOW_HOSTS", default=[]))
     CSRF_TRUSTED_ORIGINS = [env("CSRF_TRUSTED_ORIGIN")]
 
 # Application definition
