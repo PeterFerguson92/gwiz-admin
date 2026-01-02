@@ -27,6 +27,7 @@ class FitnessClassSerializer(serializers.ModelSerializer):
             "description",
             "genre",
             "base_price",
+            "payment_link",
             "default_duration_minutes",
             "capacity",
             "instructors",

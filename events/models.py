@@ -37,6 +37,11 @@ class Event(models.Model):
         default=0,
         help_text="Price per ticket; set to 0 for free events.",
     )
+    payment_link = models.URLField(
+        max_length=500,
+        blank=True,
+        help_text="Optional external payment link for this event.",
+    )
     capacity = models.PositiveIntegerField(
         validators=[MinValueValidator(1)],
         help_text="Total number of tickets available.",
