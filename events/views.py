@@ -13,6 +13,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from booking import membership
+
 from . import payments
 from .email_utils import send_ticket_cancellation_email, send_ticket_confirmation_email
 from .models import Event, EventTicket
@@ -116,7 +118,12 @@ class PurchaseTicketView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            is_free = event.ticket_price == 0
+            can_use_membership, membership_reason = membership.can_book_event(
+                user, event, n=quantity
+            )
+            use_membership = bool(can_use_membership)
+
+            is_free = event.ticket_price == 0 or use_membership
             payment_status = (
                 EventTicket.PAYMENT_INCLUDED if is_free else EventTicket.PAYMENT_PENDING
             )
@@ -171,13 +178,19 @@ class PurchaseTicketView(APIView):
             ticket.save(update_fields=["stripe_payment_intent_id", "updated_at"])
             client_secret = intent.client_secret
         else:
-            # Free tickets confirm immediately; send confirmation now
+            # Free or membership-included tickets confirm immediately; consume credits when needed
+            if use_membership:
+                membership.consume_event_credit(
+                    user, event, n=quantity, reference_id=ticket.id
+                )
             send_ticket_confirmation_email(ticket)
 
         serializer = EventTicketSerializer(ticket)
         data = serializer.data
         if client_secret:
             data["stripe_client_secret"] = client_secret
+        if is_free:
+            data["email_sent"] = True
 
         return Response(data, status=status.HTTP_201_CREATED)
 
@@ -365,6 +378,10 @@ class StripeWebhookView(APIView):
         if changed_fields:
             changed_fields.append("updated_at")
             ticket.save(update_fields=changed_fields)
+            if ticket.payment_status == EventTicket.PAYMENT_INCLUDED:
+                membership.restore_event_credit(
+                    ticket.user, ticket.event, n=ticket.quantity, reference_id=ticket.id
+                )
             email_sent = send_ticket_cancellation_email(ticket)
             logger.info(
                 "Marked ticket %s as cancelled/void due to failed Stripe payment; email_sent=%s",

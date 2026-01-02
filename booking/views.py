@@ -20,12 +20,21 @@ from booking.serializer import (
     ClassSessionSerializer,
     FitnessClassSerializer,
     FitnessClassWithUpcomingSessionsSerializer,
+    MembershipPlanSerializer,
     MyBookingSerializer,
+    UserMembershipSerializer,
 )
 from notifications import whatsapp
 
 from . import membership, payments
-from .models import Booking, ClassSession, FitnessClass
+from .models import (
+    Booking,
+    ClassSession,
+    FitnessClass,
+    MembershipPlan,
+    MembershipPurchase,
+    UserMembership,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -315,7 +324,7 @@ class BookSessionView(APIView):
         )
 
         if payment_status == Booking.PAYMENT_INCLUDED:
-            membership.consume_credit(user, session, n=1)
+            membership.consume_credit(user, session, n=1, reference_id=booking.id)
             whatsapp.send_booking_confirmation(booking)
         else:
             try:
@@ -419,7 +428,7 @@ class CancelBookingView(APIView):
 
         # 4) Restore credit if it was included in membership
         if booking.payment_status == Booking.PAYMENT_INCLUDED:
-            membership.restore_credit(user, session, n=1)
+            membership.restore_credit(user, session, n=1, reference_id=booking.id)
 
         serializer = BookingSerializer(booking)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -478,7 +487,7 @@ class CancelBookingView(APIView):
 
         # Restore credit if it was included in membership
         if booking.payment_status == Booking.PAYMENT_INCLUDED:
-            membership.restore_credit(user, session, n=1)
+            membership.restore_credit(user, session, n=1, reference_id=booking.id)
 
         serializer = BookingSerializer(booking)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -545,7 +554,7 @@ class CancelBookingView(APIView):
 
         # Restore credit if it was included in membership
         if booking.payment_status == Booking.PAYMENT_INCLUDED:
-            membership.restore_credit(user, session, n=1)
+            membership.restore_credit(user, session, n=1, reference_id=booking.id)
 
         whatsapp.send_booking_cancellation(booking)
 
@@ -637,6 +646,27 @@ class StripeWebhookView(APIView):
         booking = Booking.objects.filter(stripe_payment_intent_id=intent_id).first()
 
         if not booking:
+            # Membership purchase path
+            purchase = MembershipPurchase.objects.filter(
+                stripe_payment_intent_id=intent_id
+            ).first()
+            if purchase:
+                if purchase.status != MembershipPurchase.STATUS_PAID:
+                    purchase.status = MembershipPurchase.STATUS_PAID
+                    purchase.save(update_fields=["status", "updated_at"])
+                    UserMembership.objects.create(
+                        user=purchase.user,
+                        plan=purchase.plan,
+                        remaining_class_sessions=purchase.plan.included_class_sessions,
+                        remaining_events=purchase.plan.included_events,
+                        status=UserMembership.STATUS_ACTIVE,
+                    )
+                    logger.info(
+                        "Marked membership purchase %s as paid and granted membership.",
+                        purchase.id,
+                    )
+                return
+
             logger.warning(
                 "Stripe PaymentIntent %s was successful but no booking matched.",
                 intent_id,
@@ -663,6 +693,20 @@ class StripeWebhookView(APIView):
         booking = Booking.objects.filter(stripe_payment_intent_id=intent_id).first()
 
         if not booking:
+            purchase = MembershipPurchase.objects.filter(
+                stripe_payment_intent_id=intent_id
+            ).first()
+            if purchase:
+                if purchase.status != MembershipPurchase.STATUS_CANCELLED:
+                    purchase.status = MembershipPurchase.STATUS_CANCELLED
+                    purchase.save(update_fields=["status", "updated_at"])
+                logger.warning(
+                    "Membership purchase %s cancelled/failed for PaymentIntent %s",
+                    purchase.id,
+                    intent_id,
+                )
+                return
+
             logger.warning(
                 "Stripe PaymentIntent %s failed but no booking matched.",
                 intent_id,
@@ -725,3 +769,297 @@ class FitnessClassWithUpcomingSessionsView(RetrieveAPIView):
             context["days"] = days_param
 
         return context
+
+
+class MembershipPlanListView(generics.ListAPIView):
+    serializer_class = MembershipPlanSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return MembershipPlan.objects.filter(is_active=True).order_by("price", "name")
+
+
+class MyMembershipView(generics.RetrieveAPIView):
+    serializer_class = UserMembershipSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        user = self.request.user
+        return (
+            UserMembership.objects.filter(
+                user=user, status=UserMembership.STATUS_ACTIVE
+            )
+            .order_by("-starts_at")
+            .first()
+        )
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not obj:
+            return Response(
+                {"detail": "No active membership."}, status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data)
+
+
+class MembershipChangeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Memberships"],
+        request=OpenApiTypes.OBJECT,
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    def post(self, request):
+        plan_id = request.data.get("plan_id")
+        if not plan_id:
+            return Response(
+                {"detail": "plan_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        plan = MembershipPlan.objects.filter(id=plan_id, is_active=True).first()
+        if not plan:
+            return Response(
+                {"detail": "Plan not found or inactive."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        user = request.user
+        # Cancel current active membership if exists
+        current = (
+            UserMembership.objects.filter(
+                user=user, status=UserMembership.STATUS_ACTIVE
+            )
+            .order_by("-starts_at")
+            .first()
+        )
+        if current:
+            current.status = UserMembership.STATUS_CANCELLED
+            current.save(update_fields=["status", "updated_at"])
+
+        # If plan is free, grant immediately
+        if plan.price == 0:
+            membership_obj = UserMembership.objects.create(
+                user=user,
+                plan=plan,
+                remaining_class_sessions=plan.included_class_sessions,
+                remaining_events=plan.included_events,
+                status=UserMembership.STATUS_ACTIVE,
+            )
+            serializer = UserMembershipSerializer(membership_obj)
+            return Response(
+                {
+                    "membership": serializer.data,
+                    "stripe_client_secret": None,
+                    "purchase_id": None,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        # Paid plan: create a purchase + PaymentIntent
+        purchase = MembershipPurchase.objects.create(
+            user=user,
+            plan=plan,
+            amount=plan.price,
+            status=MembershipPurchase.STATUS_PENDING,
+        )
+
+        try:
+            intent = payments.create_payment_intent_for_membership(purchase)
+        except ImproperlyConfigured:
+            logger.exception(
+                "Stripe not configured for membership plan change %s", purchase.id
+            )
+            purchase.delete()
+            return Response(
+                {"detail": "Online payments are currently unavailable."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except ValueError as exc:
+            logger.exception(
+                "Invalid payment configuration for membership purchase %s: %s",
+                purchase.id,
+                exc,
+            )
+            purchase.delete()
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except stripe.error.StripeError as exc:
+            logger.exception(
+                "Stripe error while creating PaymentIntent for membership purchase %s: %s",
+                purchase.id,
+                exc,
+            )
+            purchase.delete()
+            return Response(
+                {"detail": "Unable to start payment. Please try again."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        purchase.stripe_payment_intent_id = intent.id
+        purchase.save(update_fields=["stripe_payment_intent_id", "updated_at"])
+
+        return Response(
+            {
+                "purchase_id": purchase.id,
+                "stripe_payment_intent_id": intent.id,
+                "stripe_client_secret": intent.client_secret,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class MembershipCancelView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Memberships"],
+        request=None,
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    def post(self, request):
+        user = request.user
+        current = (
+            UserMembership.objects.filter(
+                user=user, status=UserMembership.STATUS_ACTIVE
+            )
+            .order_by("-starts_at")
+            .first()
+        )
+        if not current:
+            return Response(
+                {"detail": "No active membership."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        current.status = UserMembership.STATUS_CANCELLED
+        current.save(update_fields=["status", "updated_at"])
+        return Response({"detail": "Membership cancelled."}, status=status.HTTP_200_OK)
+
+
+class MembershipPurchaseView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Memberships"],
+        request=OpenApiTypes.OBJECT,
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    def post(self, request):
+        plan_id = request.data.get("plan_id")
+        if not plan_id:
+            return Response(
+                {"detail": "plan_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        plan = MembershipPlan.objects.filter(id=plan_id, is_active=True).first()
+        if not plan:
+            return Response(
+                {"detail": "Plan not found or inactive."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        user = request.user
+
+        # Free/zero-priced plan: grant immediately
+        if plan.price == 0:
+            membership_obj = UserMembership.objects.create(
+                user=user,
+                plan=plan,
+                remaining_class_sessions=plan.included_class_sessions,
+                remaining_events=plan.included_events,
+                status=UserMembership.STATUS_ACTIVE,
+            )
+            serializer = UserMembershipSerializer(membership_obj)
+            return Response(
+                {"membership": serializer.data, "stripe_client_secret": None},
+                status=status.HTTP_201_CREATED,
+            )
+
+        # Paid plan: create purchase + PaymentIntent
+        purchase = MembershipPurchase.objects.create(
+            user=user,
+            plan=plan,
+            amount=plan.price,
+            status=MembershipPurchase.STATUS_PENDING,
+        )
+
+        try:
+            intent = payments.create_payment_intent_for_membership(purchase)
+        except ImproperlyConfigured:
+            logger.exception(
+                "Stripe is not configured for membership purchase %s", purchase.id
+            )
+            purchase.delete()
+            return Response(
+                {"detail": "Online payments are currently unavailable."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except ValueError as exc:
+            logger.exception(
+                "Invalid payment configuration for membership purchase %s: %s",
+                purchase.id,
+                exc,
+            )
+            purchase.delete()
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except stripe.error.StripeError as exc:
+            logger.exception(
+                "Stripe error while creating PaymentIntent for membership purchase %s: %s",
+                purchase.id,
+                exc,
+            )
+            purchase.delete()
+            return Response(
+                {"detail": "Unable to start payment. Please try again."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        purchase.stripe_payment_intent_id = intent.id
+        purchase.save(update_fields=["stripe_payment_intent_id", "updated_at"])
+
+        return Response(
+            {
+                "purchase_id": purchase.id,
+                "stripe_payment_intent_id": intent.id,
+                "stripe_client_secret": intent.client_secret,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class MembershipPlanListView(generics.ListAPIView):
+    serializer_class = MembershipPlanSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return MembershipPlan.objects.filter(is_active=True).order_by("price", "name")
+
+
+class MyMembershipView(generics.RetrieveAPIView):
+    serializer_class = UserMembershipSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        user = self.request.user
+        return (
+            UserMembership.objects.filter(
+                user=user, status=UserMembership.STATUS_ACTIVE
+            )
+            .order_by("-starts_at")
+            .first()
+        )
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if not obj:
+            return Response(
+                {"detail": "No active membership."}, status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data)

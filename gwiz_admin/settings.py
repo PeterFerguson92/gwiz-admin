@@ -272,6 +272,16 @@ UNFOLD = {
                         "link": reverse_lazy("admin:events_eventticket_changelist"),
                     },
                     {
+                        "title": "Membership plans",
+                        "icon": "workspace_premium",
+                        "link": reverse_lazy("admin:booking_membershipplan_changelist"),
+                    },
+                    {
+                        "title": "Memberships",
+                        "icon": "card_membership",
+                        "link": reverse_lazy("admin:booking_usermembership_changelist"),
+                    },
+                    {
                         "title": "Fitness classes",
                         "icon": "fitness_center",
                         "link": reverse_lazy("admin:booking_fitnessclass_changelist"),

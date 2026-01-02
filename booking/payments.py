@@ -60,6 +60,11 @@ def _payment_description(booking) -> str:
     return f"{prefix}: {class_name} on {session.date}"
 
 
+def _membership_payment_description(plan_name: str) -> str:
+    prefix = getattr(settings, "STRIPE_PAYMENT_DESCRIPTION_PREFIX", "Gwiz Membership")
+    return f"{prefix}: {plan_name}"
+
+
 def create_payment_intent_for_booking(booking):
     """
     Create a Stripe PaymentIntent for the supplied booking instance.
@@ -98,6 +103,43 @@ def create_payment_intent_for_booking(booking):
         booking.id,
     )
 
+    return intent
+
+
+def create_payment_intent_for_membership(purchase):
+    """
+    Create a Stripe PaymentIntent for a membership purchase.
+    """
+    _configure_stripe()
+
+    amount_cents = _convert_price_to_cents(purchase.amount)
+    metadata = {
+        "membership_purchase_id": str(purchase.id),
+        "user_id": str(purchase.user_id),
+        "plan_id": str(purchase.plan_id),
+    }
+
+    kwargs: Dict[str, Any] = {
+        "amount": amount_cents,
+        "currency": getattr(settings, "STRIPE_CURRENCY", "usd"),
+        "metadata": metadata,
+        "description": _membership_payment_description(purchase.plan.name),
+        "automatic_payment_methods": {
+            "enabled": True,
+            "allow_redirects": "never",
+        },
+    }
+
+    email = getattr(purchase.user, "email", "")
+    if email:
+        kwargs["receipt_email"] = email
+
+    intent = stripe.PaymentIntent.create(**kwargs)
+    logger.debug(
+        "Created Stripe PaymentIntent %s for membership purchase %s",
+        intent.id,
+        purchase.id,
+    )
     return intent
 
 

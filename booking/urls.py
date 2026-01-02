@@ -9,7 +9,12 @@ from .views import (
     FitnessClassListView,
     FitnessClassSessionsView,
     FitnessClassWithUpcomingSessionsView,
+    MembershipCancelView,
+    MembershipChangeView,
+    MembershipPlanListView,
+    MembershipPurchaseView,
     MyBookingsListView,
+    MyMembershipView,
     StripeWebhookView,
     UpcomingClassSessionListView,
 )
@@ -77,5 +82,31 @@ urlpatterns = [
         "stripe/webhook/",
         StripeWebhookView.as_view(),
         name="stripe-webhook",
+    ),
+    # Memberships
+    path(
+        "memberships/plans/",
+        MembershipPlanListView.as_view(),
+        name="membership-plans",
+    ),
+    path(
+        "memberships/me/",
+        MyMembershipView.as_view(),
+        name="my-membership",
+    ),
+    path(
+        "memberships/purchase/",
+        MembershipPurchaseView.as_view(),
+        name="membership-purchase",
+    ),
+    path(
+        "memberships/change/",
+        MembershipChangeView.as_view(),
+        name="membership-change",
+    ),
+    path(
+        "memberships/cancel/",
+        MembershipCancelView.as_view(),
+        name="membership-cancel",
     ),
 ]

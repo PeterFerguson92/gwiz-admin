@@ -6,7 +6,14 @@ from rest_framework import serializers
 
 from homepage.models import Trainer
 
-from .models import Booking, ClassSession, FitnessClass, RecurrenceRule
+from .models import (
+    Booking,
+    ClassSession,
+    FitnessClass,
+    MembershipPlan,
+    RecurrenceRule,
+    UserMembership,
+)
 
 
 class TrainerSerializer(serializers.ModelSerializer):
@@ -195,3 +202,36 @@ class FitnessClassWithUpcomingSessionsSerializer(FitnessClassSerializer):
         ).order_by("date", "start_time")
 
         return ClassSessionSerializer(qs, many=True).data
+
+
+class MembershipPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MembershipPlan
+        fields = [
+            "id",
+            "name",
+            "description",
+            "price",
+            "plan_type",
+            "included_class_sessions",
+            "included_events",
+            "is_active",
+        ]
+
+
+class UserMembershipSerializer(serializers.ModelSerializer):
+    plan = MembershipPlanSerializer(read_only=True)
+
+    class Meta:
+        model = UserMembership
+        fields = [
+            "id",
+            "plan",
+            "status",
+            "remaining_class_sessions",
+            "remaining_events",
+            "starts_at",
+            "expires_at",
+            "created_at",
+            "updated_at",
+        ]
