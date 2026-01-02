@@ -254,6 +254,10 @@ class CancelTicketView(APIView):
         if payment_status_changed:
             update_fields.append("payment_status")
         ticket.save(update_fields=update_fields)
+        if ticket.payment_status == EventTicket.PAYMENT_INCLUDED:
+            membership.restore_event_credit(
+                user, ticket.event, n=ticket.quantity, reference_id=ticket.id
+            )
         cancel_email_sent = send_ticket_cancellation_email(ticket)
         logger.info(
             "Ticket %s cancelled by user; email_sent=%s",
