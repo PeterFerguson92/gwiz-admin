@@ -282,6 +282,20 @@ UNFOLD = {
                         "link": reverse_lazy("admin:booking_usermembership_changelist"),
                     },
                     {
+                        "title": "Membership purchases",
+                        "icon": "shopping_bag",
+                        "link": reverse_lazy(
+                            "admin:booking_membershippurchase_changelist"
+                        ),
+                    },
+                    {
+                        "title": "Membership usage",
+                        "icon": "history",
+                        "link": reverse_lazy(
+                            "admin:booking_membershipusage_changelist"
+                        ),
+                    },
+                    {
                         "title": "Fitness classes",
                         "icon": "fitness_center",
                         "link": reverse_lazy("admin:booking_fitnessclass_changelist"),
@@ -323,6 +337,11 @@ UNFOLD = {
                         "title": "Assets",
                         "icon": "photo_library",
                         "link": reverse_lazy("admin:homepage_assets_changelist"),
+                    },
+                    {
+                        "title": "About Us",
+                        "icon": "info",
+                        "link": reverse_lazy("admin:homepage_aboutus_changelist"),
                     },
                     {
                         "title": "Homepage",
