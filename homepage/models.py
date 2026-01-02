@@ -172,7 +172,6 @@ class AboutUs(models.Model):
     )
     about_us_homepage_image2 = ResizedImageField(
         "About Us Homepage Image 2",
-        size=[371, 421],
         upload_to=about_us_homepage_upload_image2_path,
         null=True,
         blank=True,
