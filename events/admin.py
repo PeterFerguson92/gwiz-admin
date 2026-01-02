@@ -51,6 +51,7 @@ class EventAdmin(ModelAdmin):
             {
                 "fields": (
                     "ticket_price",
+                    "payment_link",
                     "capacity",
                     "remaining_tickets",
                     "is_sold_out",

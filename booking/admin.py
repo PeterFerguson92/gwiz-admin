@@ -39,6 +39,7 @@ class FitnessClassAdmin(ModelAdmin):
                 "fields": (
                     ("base_price", "default_duration_minutes"),
                     ("capacity", "is_active"),
+                    "payment_link",
                 ),
             },
         ),

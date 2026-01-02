@@ -18,6 +18,7 @@ class EventSerializer(serializers.ModelSerializer):
             "start_datetime",
             "end_datetime",
             "ticket_price",
+            "payment_link",
             "capacity",
             "remaining_tickets",
             "is_sold_out",

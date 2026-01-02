@@ -37,6 +37,11 @@ class FitnessClass(models.Model):
     description = models.TextField()
     genre = models.CharField(max_length=50, choices=GENRE_CHOICES)
     base_price = models.DecimalField(max_digits=8, decimal_places=2)
+    payment_link = models.URLField(
+        max_length=500,
+        blank=True,
+        help_text="Optional external payment/booking link.",
+    )
     default_duration_minutes = models.PositiveIntegerField(default=60)
     capacity = models.PositiveIntegerField()
     instructors = models.ManyToManyField(
