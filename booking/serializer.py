@@ -122,6 +122,9 @@ class BookingSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "user",
+            "guest_name",
+            "guest_email",
+            "guest_phone",
             "class_session",
             "status",
             "payment_status",

@@ -246,7 +246,13 @@ class Booking(models.Model):
         settings.AUTH_USER_MODEL,
         related_name="bookings",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
     )
+    is_guest_purchase = models.BooleanField(default=False)
+    guest_name = models.CharField(max_length=255, blank=True)
+    guest_email = models.EmailField(blank=True)
+    guest_phone = models.CharField(max_length=50, blank=True)
 
     class_session = models.ForeignKey(
         "booking.ClassSession",
@@ -288,7 +294,7 @@ class Booking(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["user", "class_session"],
-                condition=Q(status="booked"),
+                condition=Q(status="booked") & Q(user__isnull=False),
                 name="unique_active_booking_per_session",
             )
         ]

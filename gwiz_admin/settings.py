@@ -489,6 +489,18 @@ SENDGRID_TICKET_TEMPLATE_ID = env(
     default=os.environ.get("SENDGRID_TICKET_TEMPLATE_ID", ""),
 )
 
+SENDGRID_BOOKING_TEMPLATE_ID = env(
+    "SENDGRID_BOOKING_TEMPLATE_ID",
+    default=os.environ.get("SENDGRID_BOOKING_TEMPLATE_ID", ""),
+)
+
+LOGO_URL = env(
+    "LOGO_URL",
+    default=os.environ.get(
+        "LOGO_URL", "https://gwiz-prod.s3.us-east-2.amazonaws.com/FSCG+Logo+-+White.png"
+    ),
+)
+
 
 FRONTEND_RESET_PASSWORD_URL = env(
     "FRONTEND_RESET_PASSWORD_URL",
