@@ -38,7 +38,9 @@ def send_booking_confirmation_email(booking, cancel_token: str | None = None) ->
     base_site = getattr(settings, "PUBLIC_SITE_URL", "")
     class_url = f"{base_site}classes/{fc.id}" if base_site else ""
 
-    subject = f"FSXCG | Booking {booking.status} | {fc.name}"
+    status_label = booking.status.replace("_", " ").title()
+    payment_label = booking.payment_status.replace("_", " ").title()
+    subject = f"FSXCG | Booking {status_label} | {fc.name}"
 
     data = {
         "class_name": fc.name,
@@ -49,8 +51,8 @@ def send_booking_confirmation_email(booking, cancel_token: str | None = None) ->
         else "",
         "end_time": session.end_time.strftime("%H:%M") if session.end_time else "",
         "booking_id": str(booking.id),
-        "status": booking.status,
-        "payment_status": booking.payment_status,
+        "status": status_label,
+        "payment_status": payment_label,
         "cancel_url": cancel_url,
         "class_url": class_url,
         "logo_url": getattr(

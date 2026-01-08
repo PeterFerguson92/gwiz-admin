@@ -391,7 +391,10 @@ class StripeWebhookView(APIView):
         ticket.payment_status = EventTicket.PAYMENT_PAID
         ticket.status = EventTicket.STATUS_CONFIRMED
         ticket.save(update_fields=["payment_status", "status", "updated_at"])
-        email_sent = send_ticket_confirmation_email(ticket)
+        cancel_token = None
+        if ticket.user_id is None:
+            cancel_token = generate_cancel_token("event_ticket", ticket.id)
+        email_sent = send_ticket_confirmation_email(ticket, cancel_token=cancel_token)
         logger.info(
             "Marked ticket %s as paid from Stripe webhook; email_sent=%s",
             ticket.id,

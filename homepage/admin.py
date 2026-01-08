@@ -165,6 +165,7 @@ class AssetsAdmin(ModelAdmin):
                     "personal_tickets_cover",
                     "personal_bookings_cover",
                     "contact_us_cover",
+                    "cancel_cover",
                 ),
             },
         ),

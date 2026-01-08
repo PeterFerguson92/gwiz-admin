@@ -15,6 +15,7 @@ from homepage.upload import (
     about_us_homepage_upload_image2_path,
     about_us_section_upload_image1_path,
     about_us_section_upload_image2_path,
+    assets_cancel_cover_upload_image_path,
     assets_contact_us_cover_upload_image_path,
     assets_login_cover_upload_image_path,
     assets_main_classes_cover_upload_image_path,
@@ -406,6 +407,13 @@ class Assets(models.Model):
     contact_us_cover = ResizedImageField(
         "Contact us cover",
         upload_to=assets_contact_us_cover_upload_image_path,
+        null=True,
+        blank=True,
+        storage=s3_storage,
+    )
+    cancel_cover = ResizedImageField(
+        "Cancel cover",
+        upload_to=assets_cancel_cover_upload_image_path,
         null=True,
         blank=True,
         storage=s3_storage,

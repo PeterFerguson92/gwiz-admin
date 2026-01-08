@@ -82,6 +82,8 @@ def _build_template_data(ticket, to_email: str, status_text: str) -> dict:
     start_dt = _format_dt(event.start_datetime)
     end_dt = _format_dt(event.end_datetime) if event.end_datetime else ""
     location_line = event.location or "TBA"
+    status_label = ticket.status.replace("_", " ").title()
+    payment_label = ticket.payment_status.replace("_", " ").title()
 
     subject_event_name = html.unescape(event.name) if event.name else ""
     return {
@@ -93,8 +95,8 @@ def _build_template_data(ticket, to_email: str, status_text: str) -> dict:
         "ticket_id": str(ticket.id),
         "event_id": str(event.id),
         "user_email": to_email,
-        "status": ticket.status,
-        "payment_status": ticket.payment_status,
+        "status": status_label,
+        "payment_status": payment_label,
         "logo_url": LOGO_URL,
         "subject": f"FSXCG | Event {ticket.status} | {subject_event_name}",
     }
