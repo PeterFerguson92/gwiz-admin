@@ -40,6 +40,8 @@ def _get_client():
 
 
 def _format_user_name(user) -> str:
+    if not user:
+        return "Guest"
     return getattr(user, "full_name", "") or user.get_full_name() or user.get_username()
 
 
@@ -209,6 +211,13 @@ def send_booking_cancellation(booking) -> bool:
         return False
 
     user = booking.user
+    if not user:
+        logger.info(
+            "Skipping WhatsApp cancellation for guest booking %s (no user).",
+            booking.id,
+        )
+        _notify_admins_of_booking_event(booking, "cancelled")
+        return False
     class_name, date_str, time_str = _format_session_details(booking)
     template_sid = getattr(settings, "TWILIO_WHATSAPP_TEMPLATE_SID", "")
     event_label = "cancelled"

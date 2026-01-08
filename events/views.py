@@ -157,6 +157,7 @@ class PurchaseTicketView(APIView):
             )
 
         client_secret = None
+        cancel_token = None
 
         if not is_free:
             try:
@@ -212,9 +213,9 @@ class PurchaseTicketView(APIView):
         if is_free:
             data["email_sent"] = True
         if user is None:
-            data["cancel_token"] = cancel_token or generate_cancel_token(
-                "event_ticket", ticket.id
-            )
+            if cancel_token is None:
+                cancel_token = generate_cancel_token("event_ticket", ticket.id)
+            data["cancel_token"] = cancel_token
 
         return Response(data, status=status.HTTP_201_CREATED)
 
