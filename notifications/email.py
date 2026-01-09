@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 
 @lru_cache(maxsize=1)
 def _get_sendgrid_client():
+    if not getattr(settings, "EMAIL_NOTIFICATIONS_ENABLED", True):
+        logger.debug("Email notifications disabled via settings.")
+        return None
+
     api_key = getattr(settings, "SENDGRID_API_KEY", "")
     if not api_key:
         logger.error(

@@ -78,6 +78,7 @@ def create_payment_intent_for_booking(booking):
         "booking_id": str(booking.id),
         "user_id": str(booking.user_id),
         "class_session_id": str(session.id),
+        "type": "booking",
     }
 
     kwargs: Dict[str, Any] = {
@@ -150,11 +151,9 @@ def parse_stripe_event(payload: bytes, sig_header: str):
     (suitable for local development).
     """
     webhook_secret = getattr(settings, "STRIPE_WEBHOOK_SECRET", "")
+    if not webhook_secret:
+        raise ImproperlyConfigured(
+            "STRIPE_WEBHOOK_SECRET is not configured for booking webhooks."
+        )
 
-    if webhook_secret:
-        return stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
-
-    if isinstance(payload, bytes):
-        payload = payload.decode("utf-8")
-
-    return json.loads(payload)
+    return stripe.Webhook.construct_event(payload, sig_header, webhook_secret)

@@ -15,6 +15,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from booking.email_utils import send_booking_confirmation_email
 from booking.serializer import (
     BookingSerializer,
     ClassSessionSerializer,
@@ -35,6 +36,7 @@ from .models import (
     MembershipPurchase,
     UserMembership,
 )
+from .tokens import generate_cancel_token, verify_cancel_token
 
 logger = logging.getLogger(__name__)
 
@@ -263,10 +265,13 @@ class AllUpcomingSessionsView(generics.ListAPIView):
 
 
 class BookSessionView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request, session_id):
-        user = request.user
+        user = request.user if request.user.is_authenticated else None
+        guest_name = request.data.get("guest_name", "").strip()
+        guest_email = request.data.get("guest_email", "").strip()
+        guest_phone = request.data.get("guest_phone", "").strip()
 
         session = get_object_or_404(
             ClassSession,
@@ -293,39 +298,53 @@ class BookSessionView(APIView):
             )
 
         # Check if user already has an active booking
-        existing = Booking.objects.filter(
-            user=user,
-            class_session=session,
-            status=Booking.STATUS_BOOKED,
-        ).first()
+        if user:
+            existing = Booking.objects.filter(
+                user=user,
+                class_session=session,
+                status=Booking.STATUS_BOOKED,
+            ).first()
 
-        if existing:
-            return Response(
-                {"detail": "You already have a booking for this session."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            if existing:
+                return Response(
+                    {"detail": "You already have a booking for this session."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            if not guest_email:
+                return Response(
+                    {"detail": "guest_email is required for guest bookings."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         # Membership / payment logic (simplified)
-        can_book, reason = membership.can_book_session(user, session)
-
-        if can_book:
-            payment_status = Booking.PAYMENT_INCLUDED
+        if user:
+            can_book, reason = membership.can_book_session(user, session)
+            if can_book:
+                payment_status = Booking.PAYMENT_INCLUDED
+            else:
+                payment_status = Booking.PAYMENT_PENDING
         else:
-            # For now: create a pending booking; Stripe flow will complete payment
             payment_status = Booking.PAYMENT_PENDING
 
         stripe_client_secret = None
 
         booking = Booking.objects.create(
             user=user,
+            guest_name=guest_name,
+            guest_email=guest_email,
+            guest_phone=guest_phone,
+            is_guest_purchase=user is None,
             class_session=session,
             status=Booking.STATUS_BOOKED,
             payment_status=payment_status,
         )
 
-        if payment_status == Booking.PAYMENT_INCLUDED:
+        cancel_token = generate_cancel_token("booking", booking.id)
+        if payment_status == Booking.PAYMENT_INCLUDED and user:
             membership.consume_credit(user, session, n=1, reference_id=booking.id)
             whatsapp.send_booking_confirmation(booking)
+            send_booking_confirmation_email(booking, cancel_token=cancel_token)
         else:
             try:
                 payment_intent = payments.create_payment_intent_for_booking(booking)
@@ -369,139 +388,42 @@ class BookSessionView(APIView):
         data = serializer.data
         if stripe_client_secret:
             data["stripe_client_secret"] = stripe_client_secret
+        data["cancel_token"] = cancel_token
+        # Send email only when booking is confirmed (paid or included)
+        if payment_status == Booking.PAYMENT_INCLUDED:
+            send_booking_confirmation_email(booking, cancel_token=cancel_token)
 
         return Response(data, status=status.HTTP_201_CREATED)
 
 
 class CancelBookingView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request, booking_id):
-        user = request.user
+        user = request.user if request.user.is_authenticated else None
 
-        # 1) Look up by PK only, then check ownership explicitly
         booking = Booking.objects.filter(pk=booking_id).first()
-        if booking is None or booking.user_id != user.id:
-            # Hide whether the booking exists if it's not theirs
-            return Response(
-                {"detail": "Not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        if booking is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if booking.status != Booking.STATUS_BOOKED:
-            return Response(
-                {"detail": "This booking is not active."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        session = booking.class_session
-
-        # 2) Cancellation cutoff (in hours) from settings or default 2h
-        cutoff_hours = getattr(settings, "BOOKING_CANCELLATION_CUTOFF_HOURS", 2)
-
-        session_naive = datetime.datetime.combine(session.date, session.start_time)
-        now = timezone.now()
-
-        # Make both datetimes either aware or naive consistently
-        if timezone.is_aware(now):
-            session_dt = timezone.make_aware(
-                session_naive,
-                timezone=timezone.get_current_timezone(),
-            )
+        # Authenticated path: must own booking
+        if user:
+            if booking.user_id != user.id:
+                return Response(
+                    {"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND
+                )
         else:
-            session_dt = session_naive
-
-        if session_dt - now < datetime.timedelta(hours=cutoff_hours):
-            return Response(
-                {
-                    "detail": (
-                        "Cancellation window has passed. "
-                        "Please contact the gym if you need help."
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # 3) Mark booking cancelled
-        booking.status = Booking.STATUS_CANCELLED
-        booking.save(update_fields=["status", "updated_at"])
-
-        # 4) Restore credit if it was included in membership
-        if booking.payment_status == Booking.PAYMENT_INCLUDED:
-            membership.restore_credit(user, session, n=1, reference_id=booking.id)
-
-        serializer = BookingSerializer(booking)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, booking_id):
-        user = request.user
-
-        # Fetch by PK only, then check ownership explicitly.
-        booking = Booking.objects.filter(pk=booking_id).first()
-        if booking is None or booking.user_id != user.id:
-            # Hide whether the booking exists if it's not theirs
-            return Response(
-                {"detail": "Not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        if booking.status != Booking.STATUS_BOOKED:
-            return Response(
-                {"detail": "This booking is not active."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        session = booking.class_session
-
-        # Cancellation cutoff (in hours) from settings or default 2h
-        cutoff_hours = getattr(settings, "BOOKING_CANCELLATION_CUTOFF_HOURS", 2)
-
-        # Build session start and 'now' in a consistent way
-        session_naive = datetime.datetime.combine(session.date, session.start_time)
-        now = timezone.now()
-
-        if timezone.is_aware(now):
-            session_dt = timezone.make_aware(
-                session_naive,
-                timezone=timezone.get_current_timezone(),
-            )
-        else:
-            session_dt = session_naive
-
-        if session_dt - now < datetime.timedelta(hours=cutoff_hours):
-            return Response(
-                {
-                    "detail": (
-                        "Cancellation window has passed. "
-                        "Please contact the gym if you need help."
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Mark booking cancelled
-        booking.status = Booking.STATUS_CANCELLED
-        booking.save(update_fields=["status", "updated_at"])
-
-        # Restore credit if it was included in membership
-        if booking.payment_status == Booking.PAYMENT_INCLUDED:
-            membership.restore_credit(user, session, n=1, reference_id=booking.id)
-
-        serializer = BookingSerializer(booking)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, booking_id):
-        user = request.user
-
-        booking = get_object_or_404(
-            Booking,
-            pk=booking_id,
-            user=user,
-        )
+            # Guest path: require cancel token
+            token = request.data.get("token") or request.query_params.get("token") or ""
+            if not token or not verify_cancel_token(token, "booking", booking_id):
+                return Response(
+                    {"detail": "Invalid or missing cancel token."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            if booking.user_id is not None:
+                return Response(
+                    {"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND
+                )
 
         if booking.status != Booking.STATUS_BOOKED:
             return Response(
@@ -553,7 +475,7 @@ class CancelBookingView(APIView):
         booking.save(update_fields=update_fields)
 
         # Restore credit if it was included in membership
-        if booking.payment_status == Booking.PAYMENT_INCLUDED:
+        if booking.payment_status == Booking.PAYMENT_INCLUDED and booking.user:
             membership.restore_credit(user, session, n=1, reference_id=booking.id)
 
         whatsapp.send_booking_cancellation(booking)
@@ -618,6 +540,19 @@ class StripeWebhookView(APIView):
 
         event_type = event.get("type")
         data = event.get("data", {}).get("object", {})
+        logger.debug(
+            "Stripe webhook (booking) event=%s intent=%s metadata_type=%s",
+            event_type,
+            data.get("id"),
+            data.get("metadata", {}).get("type"),
+        )
+        if data.get("metadata", {}).get("type") not in (None, "booking"):
+            logger.debug(
+                "Ignoring Stripe event %s for booking webhook; metadata type=%s",
+                event_type,
+                data.get("metadata", {}).get("type"),
+            )
+            return Response({"received": True}, status=status.HTTP_200_OK)
 
         if not data:
             logger.warning(
@@ -679,9 +614,14 @@ class StripeWebhookView(APIView):
         booking.payment_status = Booking.PAYMENT_PAID
         booking.save(update_fields=["payment_status", "updated_at"])
         whatsapp.send_booking_confirmation(booking)
+        # Email confirmation (use cancel token)
+        email_sent = send_booking_confirmation_email(
+            booking, cancel_token=generate_cancel_token("booking", booking.id)
+        )
         logger.info(
-            "Marked booking %s as paid from Stripe webhook.",
+            "Marked booking %s as paid from Stripe webhook; email_sent=%s",
             booking.id,
+            email_sent,
         )
 
     def _handle_payment_intent_failed(self, payload: dict) -> None:

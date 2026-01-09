@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from booking import membership
+from booking.tokens import generate_cancel_token, verify_cancel_token
 
 from . import payments
 from .email_utils import send_ticket_cancellation_email, send_ticket_confirmation_email
@@ -73,10 +74,13 @@ class EventDetailView(generics.RetrieveAPIView):
     responses={201: EventTicketSerializer},
 )
 class PurchaseTicketView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request, event_id):
-        user = request.user
+        user = request.user if request.user.is_authenticated else None
+        guest_name = request.data.get("guest_name", "").strip()
+        guest_email = request.data.get("guest_email", "").strip()
+        guest_phone = request.data.get("guest_phone", "").strip()
 
         payload = PurchaseRequestSerializer(data=request.data or {})
         payload.is_valid(raise_exception=True)
@@ -107,20 +111,29 @@ class PurchaseTicketView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            existing = EventTicket.objects.filter(
-                user=user,
-                event=event,
-                status__in=EventTicket.ACTIVE_STATUSES,
-            ).first()
-            if existing:
-                return Response(
-                    {"detail": "You already have an active ticket for this event."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            if user:
+                existing = EventTicket.objects.filter(
+                    user=user,
+                    event=event,
+                    status__in=EventTicket.ACTIVE_STATUSES,
+                ).first()
+                if existing:
+                    return Response(
+                        {"detail": "You already have an active ticket for this event."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            else:
+                if not guest_email:
+                    return Response(
+                        {"detail": "guest_email is required for guest tickets."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-            can_use_membership, membership_reason = membership.can_book_event(
-                user, event, n=quantity
-            )
+            can_use_membership = False
+            if user:
+                can_use_membership, membership_reason = membership.can_book_event(
+                    user, event, n=quantity
+                )
             use_membership = bool(can_use_membership)
 
             is_free = event.ticket_price == 0 or use_membership
@@ -133,6 +146,10 @@ class PurchaseTicketView(APIView):
 
             ticket = EventTicket.objects.create(
                 user=user,
+                guest_name=guest_name,
+                guest_email=guest_email,
+                guest_phone=guest_phone,
+                is_guest_purchase=user is None,
                 event=event,
                 quantity=quantity,
                 status=status_value,
@@ -140,6 +157,7 @@ class PurchaseTicketView(APIView):
             )
 
         client_secret = None
+        cancel_token = None
 
         if not is_free:
             try:
@@ -183,7 +201,10 @@ class PurchaseTicketView(APIView):
                 membership.consume_event_credit(
                     user, event, n=quantity, reference_id=ticket.id
                 )
-            send_ticket_confirmation_email(ticket)
+            cancel_token = (
+                None if user else generate_cancel_token("event_ticket", ticket.id)
+            )
+            send_ticket_confirmation_email(ticket, cancel_token=cancel_token)
 
         serializer = EventTicketSerializer(ticket)
         data = serializer.data
@@ -191,6 +212,10 @@ class PurchaseTicketView(APIView):
             data["stripe_client_secret"] = client_secret
         if is_free:
             data["email_sent"] = True
+        if user is None:
+            if cancel_token is None:
+                cancel_token = generate_cancel_token("event_ticket", ticket.id)
+            data["cancel_token"] = cancel_token
 
         return Response(data, status=status.HTTP_201_CREATED)
 
@@ -210,14 +235,12 @@ class MyTicketsListView(generics.ListAPIView):
 
 @extend_schema(tags=["Events"], responses=EventTicketSerializer)
 class CancelTicketView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request, ticket_id):
-        user = request.user
+        user = request.user if request.user.is_authenticated else None
         ticket = (
-            EventTicket.objects.select_related("event")
-            .filter(id=ticket_id, user=user)
-            .first()
+            EventTicket.objects.select_related("event").filter(id=ticket_id).first()
         )
 
         if not ticket:
@@ -231,6 +254,25 @@ class CancelTicketView(APIView):
                 {"detail": "Ticket is already cancelled."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Authenticated path: must own ticket
+        if user:
+            if ticket.user_id != user.id:
+                return Response(
+                    {"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            # Guest path: require token
+            token = request.data.get("token") or request.query_params.get("token") or ""
+            if not token or not verify_cancel_token(token, "event_ticket", ticket_id):
+                return Response(
+                    {"detail": "Invalid or missing cancel token."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            if ticket.user_id is not None:
+                return Response(
+                    {"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND
+                )
 
         # Only allow cancellation before event start
         if ticket.event.start_datetime < timezone.now():
@@ -309,6 +351,19 @@ class StripeWebhookView(APIView):
 
         event_type = event.get("type")
         data = event.get("data", {}).get("object", {})
+        logger.debug(
+            "Stripe webhook (event) event=%s intent=%s metadata_type=%s",
+            event_type,
+            data.get("id"),
+            data.get("metadata", {}).get("type"),
+        )
+        if data.get("metadata", {}).get("type") not in (None, "event_ticket"):
+            logger.debug(
+                "Ignoring Stripe event %s for event webhook; metadata type=%s",
+                event_type,
+                data.get("metadata", {}).get("type"),
+            )
+            return Response({"received": True}, status=status.HTTP_200_OK)
 
         if not data:
             logger.warning(
@@ -349,7 +404,10 @@ class StripeWebhookView(APIView):
         ticket.payment_status = EventTicket.PAYMENT_PAID
         ticket.status = EventTicket.STATUS_CONFIRMED
         ticket.save(update_fields=["payment_status", "status", "updated_at"])
-        email_sent = send_ticket_confirmation_email(ticket)
+        cancel_token = None
+        if ticket.user_id is None:
+            cancel_token = generate_cancel_token("event_ticket", ticket.id)
+        email_sent = send_ticket_confirmation_email(ticket, cancel_token=cancel_token)
         logger.info(
             "Marked ticket %s as paid from Stripe webhook; email_sent=%s",
             ticket.id,

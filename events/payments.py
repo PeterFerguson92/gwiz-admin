@@ -61,6 +61,7 @@ def create_payment_intent_for_ticket(ticket):
         "ticket_id": str(ticket.id),
         "user_id": str(ticket.user_id),
         "event_id": str(event.id),
+        "type": "event_ticket",
     }
 
     kwargs: Dict[str, Any] = {
@@ -111,18 +112,10 @@ def parse_stripe_event(payload: bytes, sig_header: str):
     STRIPE_WEBHOOK_SECRET. If neither is set we still attempt to construct
     the event (useful for local dev without signature verification).
     """
-    webhook_secret = getattr(
-        settings,
-        "STRIPE_EVENTS_WEBHOOK_SECRET",
-        getattr(settings, "STRIPE_WEBHOOK_SECRET", ""),
-    )
+    webhook_secret = getattr(settings, "STRIPE_EVENTS_WEBHOOK_SECRET", "")
+    if not webhook_secret:
+        raise ImproperlyConfigured(
+            "STRIPE_EVENTS_WEBHOOK_SECRET is not configured for events webhooks."
+        )
 
-    if webhook_secret:
-        return stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
-
-    if isinstance(payload, bytes):
-        payload = payload.decode("utf-8")
-
-    return stripe.Webhook.construct_event(
-        payload, sig_header or None, webhook_secret or None
-    )
+    return stripe.Webhook.construct_event(payload, sig_header, webhook_secret)

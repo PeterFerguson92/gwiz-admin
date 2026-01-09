@@ -111,3 +111,8 @@ def assets_personal_bookings_cover_upload_image_path(instance, filename):
 def assets_contact_us_cover_upload_image_path(instance, filename):
     ext = get_filename_ext(filename)
     return f"assets/{instance.id}/contact_us_cover{ext}"
+
+
+def assets_cancel_cover_upload_image_path(instance, filename):
+    ext = get_filename_ext(filename)
+    return f"assets/{instance.id}/cancel_cover{ext}"

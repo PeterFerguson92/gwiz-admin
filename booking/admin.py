@@ -23,6 +23,23 @@ from .models import (
     UserMembership,
 )
 
+
+def _format_user_label(user, guest_name: str = "", guest_email: str = "") -> str:
+    if user:
+        return user.get_full_name() or user.email or "—"
+    if guest_name:
+        return f"Guest: {guest_name}"
+    if guest_email:
+        return f"Guest: {guest_email}"
+    return "Guest"
+
+
+def _format_user_email(user, guest_email: str = "") -> str:
+    if user:
+        return user.email or ""
+    return guest_email or ""
+
+
 # ---------- FitnessClass ---------- #
 
 
@@ -391,7 +408,7 @@ class BookingInline(admin.TabularInline):
         if obj.user:
             full = obj.user.get_full_name()
             return full if full else obj.user.email
-        return "—"
+        return _format_user_label(None, obj.guest_name, obj.guest_email)
 
     user_full_name.short_description = "User"
 
@@ -567,8 +584,8 @@ class ClassSessionAdmin(ModelAdmin):
                     session.start_time.strftime("%H:%M") if session.start_time else "",
                     session.end_time.strftime("%H:%M") if session.end_time else "",
                     str(booking.id),
-                    user.get_full_name() or user.email,
-                    user.email,
+                    _format_user_label(user, booking.guest_name, booking.guest_email),
+                    _format_user_email(user, booking.guest_email),
                     booking.get_status_display(),
                     booking.get_attendance_status_display(),
                     booking.get_payment_status_display(),
@@ -792,8 +809,8 @@ class BookingAdmin(admin.ModelAdmin):
             writer.writerow(
                 [
                     str(booking.id),
-                    u.get_full_name() or "",
-                    u.email,
+                    _format_user_label(u, booking.guest_name, booking.guest_email),
+                    _format_user_email(u, booking.guest_email),
                     s.fitness_class.name,
                     s.date.isoformat(),
                     s.start_time.strftime("%H:%M") if s.start_time else "",
@@ -857,8 +874,8 @@ class BookingAdmin(admin.ModelAdmin):
             writer.writerow(
                 [
                     str(booking.id),
-                    u.get_full_name() or "",
-                    u.email,
+                    _format_user_label(u, booking.guest_name, booking.guest_email),
+                    _format_user_email(u, booking.guest_email),
                     s.fitness_class.name,
                     s.date.isoformat(),
                     s.start_time.strftime("%H:%M") if s.start_time else "",
@@ -937,8 +954,8 @@ class BookingAdmin(admin.ModelAdmin):
             writer.writerow(
                 [
                     str(booking.id),
-                    u.get_full_name() or "",
-                    u.email,
+                    _format_user_label(u),
+                    _format_user_email(u),
                     s.fitness_class.name,
                     s.date.isoformat(),
                     s.start_time.strftime("%H:%M") if s.start_time else "",
@@ -959,9 +976,7 @@ class BookingAdmin(admin.ModelAdmin):
     # ---------- UI helpers ----------
 
     def user_full_name(self, obj):
-        if not obj.user_id:
-            return "—"
-        return obj.user.get_full_name() or obj.user.email
+        return _format_user_label(obj.user, obj.guest_name, obj.guest_email)
 
     user_full_name.short_description = "User full name"
 
@@ -1107,8 +1122,8 @@ class BookingAdmin(admin.ModelAdmin):
             writer.writerow(
                 [
                     str(booking.id),
-                    u.get_full_name() or "",
-                    u.email,
+                    _format_user_label(u, booking.guest_name, booking.guest_email),
+                    _format_user_email(u, booking.guest_email),
                     s.fitness_class.name,
                     s.date.isoformat(),
                     s.start_time.strftime("%H:%M") if s.start_time else "",
@@ -1184,8 +1199,8 @@ class BookingAdmin(admin.ModelAdmin):
             writer.writerow(
                 [
                     str(booking.id),
-                    u.get_full_name() or "",
-                    u.email,
+                    _format_user_label(u, booking.guest_name, booking.guest_email),
+                    _format_user_email(u, booking.guest_email),
                     s.fitness_class.name,
                     s.date.isoformat(),
                     s.start_time.strftime("%H:%M") if s.start_time else "",
@@ -1252,8 +1267,8 @@ class BookingAdmin(admin.ModelAdmin):
             writer.writerow(
                 [
                     str(booking.id),
-                    u.get_full_name() or "",
-                    u.email,
+                    _format_user_label(u, booking.guest_name, booking.guest_email),
+                    _format_user_email(u, booking.guest_email),
                     s.fitness_class.name,
                     s.date.isoformat(),
                     s.start_time.strftime("%H:%M") if s.start_time else "",
@@ -1270,7 +1285,7 @@ class BookingAdmin(admin.ModelAdmin):
     # ---------- UI helper methods ----------
 
     def user_full_name(self, obj):
-        return obj.user.get_full_name() or obj.user.email
+        return _format_user_label(obj.user, obj.guest_name, obj.guest_email)
 
     def fitness_class_name(self, obj):
         return obj.class_session.fitness_class.name

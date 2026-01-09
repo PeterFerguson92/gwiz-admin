@@ -128,7 +128,13 @@ class EventTicket(models.Model):
         settings.AUTH_USER_MODEL,
         related_name="event_tickets",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
     )
+    is_guest_purchase = models.BooleanField(default=False)
+    guest_name = models.CharField(max_length=255, blank=True)
+    guest_email = models.EmailField(blank=True)
+    guest_phone = models.CharField(max_length=50, blank=True)
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,

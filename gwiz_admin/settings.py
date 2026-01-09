@@ -245,16 +245,6 @@ UNFOLD = {
                         "icon": "space_dashboard",
                         "link": reverse_lazy("admin:index"),
                     },
-                    {
-                        "title": "Bookings",
-                        "icon": "event_available",
-                        "link": reverse_lazy("admin:booking_booking_changelist"),
-                    },
-                    {
-                        "title": "Class sessions",
-                        "icon": "calendar_month",
-                        "link": reverse_lazy("admin:booking_classsession_changelist"),
-                    },
                 ],
             },
             {
@@ -270,6 +260,16 @@ UNFOLD = {
                         "title": "Event tickets",
                         "icon": "confirmation_number",
                         "link": reverse_lazy("admin:events_eventticket_changelist"),
+                    },
+                    {
+                        "title": "Bookings",
+                        "icon": "event_available",
+                        "link": reverse_lazy("admin:booking_booking_changelist"),
+                    },
+                    {
+                        "title": "Class sessions",
+                        "icon": "calendar_month",
+                        "link": reverse_lazy("admin:booking_classsession_changelist"),
                     },
                     {
                         "title": "Membership plans",
@@ -419,6 +419,7 @@ REST_FRAMEWORK = {
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
 STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", default="")
 STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
+STRIPE_EVENTS_WEBHOOK_SECRET = env("STRIPE_EVENTS_WEBHOOK_SECRET", default="")
 STRIPE_CURRENCY = env("STRIPE_CURRENCY", default="gbp")
 STRIPE_PAYMENT_DESCRIPTION_PREFIX = env(
     "STRIPE_PAYMENT_DESCRIPTION_PREFIX",
@@ -428,6 +429,8 @@ STRIPE_PAYMENT_DESCRIPTION_PREFIX = env(
 WHATSAPP_NOTIFICATIONS_ENABLED = env.bool(
     "WHATSAPP_NOTIFICATIONS_ENABLED", default=False
 )
+
+EMAIL_NOTIFICATIONS_ENABLED = env.bool("EMAIL_NOTIFICATIONS_ENABLED", default=True)
 TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID", default="")
 TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN", default="")
 TWILIO_WHATSAPP_FROM = env("TWILIO_WHATSAPP_FROM", default="")
@@ -487,6 +490,23 @@ DEFAULT_FROM_EMAIL = env(
 SENDGRID_TICKET_TEMPLATE_ID = env(
     "SENDGRID_TICKET_TEMPLATE_ID",
     default=os.environ.get("SENDGRID_TICKET_TEMPLATE_ID", ""),
+)
+
+SENDGRID_BOOKING_TEMPLATE_ID = env(
+    "SENDGRID_BOOKING_TEMPLATE_ID",
+    default=os.environ.get("SENDGRID_BOOKING_TEMPLATE_ID", ""),
+)
+
+LOGO_URL = env(
+    "LOGO_URL",
+    default=os.environ.get(
+        "LOGO_URL", "https://gwiz-prod.s3.us-east-2.amazonaws.com/FSCG+Logo+-+White.png"
+    ),
+)
+
+HEADER_BANNER_URL = env(
+    "HEADER_BANNER_URL",
+    default=os.environ.get("HEADER_BANNER_URL", ""),
 )
 
 
