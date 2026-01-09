@@ -245,16 +245,6 @@ UNFOLD = {
                         "icon": "space_dashboard",
                         "link": reverse_lazy("admin:index"),
                     },
-                    {
-                        "title": "Bookings",
-                        "icon": "event_available",
-                        "link": reverse_lazy("admin:booking_booking_changelist"),
-                    },
-                    {
-                        "title": "Class sessions",
-                        "icon": "calendar_month",
-                        "link": reverse_lazy("admin:booking_classsession_changelist"),
-                    },
                 ],
             },
             {
@@ -270,6 +260,16 @@ UNFOLD = {
                         "title": "Event tickets",
                         "icon": "confirmation_number",
                         "link": reverse_lazy("admin:events_eventticket_changelist"),
+                    },
+                    {
+                        "title": "Bookings",
+                        "icon": "event_available",
+                        "link": reverse_lazy("admin:booking_booking_changelist"),
+                    },
+                    {
+                        "title": "Class sessions",
+                        "icon": "calendar_month",
+                        "link": reverse_lazy("admin:booking_classsession_changelist"),
                     },
                     {
                         "title": "Membership plans",
