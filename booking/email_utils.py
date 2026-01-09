@@ -60,6 +60,7 @@ def send_booking_confirmation_email(booking, cancel_token: str | None = None) ->
             "LOGO_URL",
             f"{settings.STATIC_URL}admin/brand/logo.png",
         ),
+        "header_banner_url": getattr(settings, "HEADER_BANNER_URL", ""),
         "subject": subject,
     }
 

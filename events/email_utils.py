@@ -98,6 +98,7 @@ def _build_template_data(ticket, to_email: str, status_text: str) -> dict:
         "status": status_label,
         "payment_status": payment_label,
         "logo_url": LOGO_URL,
+        "header_banner_url": getattr(settings, "HEADER_BANNER_URL", ""),
         "subject": f"FSXCG | Event {ticket.status} | {subject_event_name}",
     }
 

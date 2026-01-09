@@ -389,8 +389,8 @@ class BookSessionView(APIView):
         if stripe_client_secret:
             data["stripe_client_secret"] = stripe_client_secret
         data["cancel_token"] = cancel_token
-        # Send email for guest or user (pending payments will get email at webhook on success)
-        if payment_status == Booking.PAYMENT_INCLUDED or user is None:
+        # Send email only when booking is confirmed (paid or included)
+        if payment_status == Booking.PAYMENT_INCLUDED:
             send_booking_confirmation_email(booking, cancel_token=cancel_token)
 
         return Response(data, status=status.HTTP_201_CREATED)
@@ -602,12 +602,13 @@ class StripeWebhookView(APIView):
         booking.save(update_fields=["payment_status", "updated_at"])
         whatsapp.send_booking_confirmation(booking)
         # Email confirmation (use cancel token)
-        send_booking_confirmation_email(
+        email_sent = send_booking_confirmation_email(
             booking, cancel_token=generate_cancel_token("booking", booking.id)
         )
         logger.info(
-            "Marked booking %s as paid from Stripe webhook.",
+            "Marked booking %s as paid from Stripe webhook; email_sent=%s",
             booking.id,
+            email_sent,
         )
 
     def _handle_payment_intent_failed(self, payload: dict) -> None:

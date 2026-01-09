@@ -503,6 +503,11 @@ LOGO_URL = env(
     ),
 )
 
+HEADER_BANNER_URL = env(
+    "HEADER_BANNER_URL",
+    default=os.environ.get("HEADER_BANNER_URL", ""),
+)
+
 
 FRONTEND_RESET_PASSWORD_URL = env(
     "FRONTEND_RESET_PASSWORD_URL",
