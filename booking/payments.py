@@ -78,6 +78,7 @@ def create_payment_intent_for_booking(booking):
         "booking_id": str(booking.id),
         "user_id": str(booking.user_id),
         "class_session_id": str(session.id),
+        "type": "booking",
     }
 
     kwargs: Dict[str, Any] = {

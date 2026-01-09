@@ -61,6 +61,7 @@ def create_payment_intent_for_ticket(ticket):
         "ticket_id": str(ticket.id),
         "user_id": str(ticket.user_id),
         "event_id": str(event.id),
+        "type": "event_ticket",
     }
 
     kwargs: Dict[str, Any] = {

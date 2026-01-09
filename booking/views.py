@@ -540,6 +540,19 @@ class StripeWebhookView(APIView):
 
         event_type = event.get("type")
         data = event.get("data", {}).get("object", {})
+        logger.debug(
+            "Stripe webhook (booking) event=%s intent=%s metadata_type=%s",
+            event_type,
+            data.get("id"),
+            data.get("metadata", {}).get("type"),
+        )
+        if data.get("metadata", {}).get("type") not in (None, "booking"):
+            logger.debug(
+                "Ignoring Stripe event %s for booking webhook; metadata type=%s",
+                event_type,
+                data.get("metadata", {}).get("type"),
+            )
+            return Response({"received": True}, status=status.HTTP_200_OK)
 
         if not data:
             logger.warning(
