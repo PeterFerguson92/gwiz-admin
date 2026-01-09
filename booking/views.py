@@ -318,7 +318,11 @@ class BookSessionView(APIView):
                 )
 
         # Membership / payment logic (simplified)
-        if user:
+        session_price = session.price_effective
+        is_free = session_price is None or session_price <= 0
+        if is_free:
+            payment_status = Booking.PAYMENT_INCLUDED
+        elif user:
             can_book, reason = membership.can_book_session(user, session)
             if can_book:
                 payment_status = Booking.PAYMENT_INCLUDED
@@ -341,9 +345,10 @@ class BookSessionView(APIView):
         )
 
         cancel_token = generate_cancel_token("booking", booking.id)
-        if payment_status == Booking.PAYMENT_INCLUDED and user:
-            membership.consume_credit(user, session, n=1, reference_id=booking.id)
-            whatsapp.send_booking_confirmation(booking)
+        if payment_status == Booking.PAYMENT_INCLUDED:
+            if user and not is_free:
+                membership.consume_credit(user, session, n=1, reference_id=booking.id)
+                whatsapp.send_booking_confirmation(booking)
             send_booking_confirmation_email(booking, cancel_token=cancel_token)
         else:
             try:
@@ -389,10 +394,6 @@ class BookSessionView(APIView):
         if stripe_client_secret:
             data["stripe_client_secret"] = stripe_client_secret
         data["cancel_token"] = cancel_token
-        # Send email only when booking is confirmed (paid or included)
-        if payment_status == Booking.PAYMENT_INCLUDED:
-            send_booking_confirmation_email(booking, cancel_token=cancel_token)
-
         return Response(data, status=status.HTTP_201_CREATED)
 
 
