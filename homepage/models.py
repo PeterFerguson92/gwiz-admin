@@ -1,4 +1,5 @@
 # Create your models here.
+import os
 import uuid
 
 from django.contrib import admin
@@ -7,6 +8,10 @@ from django_resized import ResizedImageField
 from storages.backends.s3boto3 import S3Boto3Storage
 
 s3_storage = S3Boto3Storage()
+
+
+def get_google_oauth_client_id():
+    return os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
 
 
 from homepage.upload import (
@@ -300,6 +305,11 @@ class Contact(models.Model):
     email = models.CharField("Email", max_length=255)
     social = models.CharField("Social", max_length=255)
     access_key = models.CharField("Access key", max_length=255)
+    google_key = models.CharField(
+        "Google key",
+        max_length=255,
+        default=get_google_oauth_client_id,
+    )
     created_at = models.DateTimeField("Created at", auto_now_add=True)
 
     class Meta:
@@ -310,6 +320,7 @@ class Contact(models.Model):
     def save(self, *args, **kwargs):
         if not self.pk and AboutUs.objects.exists():
             raise ValueError("Only one instance is allowed.")
+        self.google_key = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
         return super().save(*args, **kwargs)
 
     def __unicode__(self):
