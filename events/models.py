@@ -3,7 +3,7 @@ import uuid
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django_resized import ResizedImageField
 from storages.backends.s3boto3 import S3Boto3Storage
 
@@ -73,8 +73,19 @@ class Event(models.Model):
         """
         Count tickets in reserved/confirmed states (capacity is based on this).
         """
+        # Only count reserved tickets once payment is included/paid; pending payments
+        # should not reduce availability.
         total = (
-            self.tickets.filter(status__in=EventTicket.ACTIVE_STATUSES)
+            self.tickets.filter(
+                Q(status=EventTicket.STATUS_CONFIRMED)
+                | Q(
+                    status=EventTicket.STATUS_RESERVED,
+                    payment_status__in=(
+                        EventTicket.PAYMENT_INCLUDED,
+                        EventTicket.PAYMENT_PAID,
+                    ),
+                )
+            )
             .aggregate(total=Sum("quantity"))
             .get("total")
         )
