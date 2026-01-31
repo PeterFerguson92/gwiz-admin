@@ -225,6 +225,7 @@ class Booking(models.Model):
         (PAYMENT_PAID, "Paid"),
         (PAYMENT_VOID, "Voided/No payment due"),
     ]
+    PAYMENT_COUNTED = (PAYMENT_INCLUDED, PAYMENT_PAID)
 
     # --- Attendance choices ---
     ATTENDANCE_UNKNOWN = "unknown"

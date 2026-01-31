@@ -192,7 +192,10 @@ class FitnessClassSessionsView(generics.ListAPIView):
             ),
             booked_count=Count(
                 "bookings",
-                filter=Q(bookings__status=Booking.STATUS_BOOKED),
+                filter=Q(
+                    bookings__status=Booking.STATUS_BOOKED,
+                    bookings__payment_status__in=Booking.PAYMENT_COUNTED,
+                ),
             ),
         ).annotate(
             remaining_spots=ExpressionWrapper(
@@ -289,7 +292,10 @@ class BookSessionView(APIView):
 
         # Capacity check
         effective_capacity = session.capacity_effective
-        current_booked = session.bookings.filter(status=Booking.STATUS_BOOKED).count()
+        current_booked = session.bookings.filter(
+            status=Booking.STATUS_BOOKED,
+            payment_status__in=Booking.PAYMENT_COUNTED,
+        ).count()
 
         if current_booked >= effective_capacity:
             return Response(
