@@ -305,17 +305,32 @@ class BookSessionView(APIView):
 
         # Check if user already has an active booking
         if user:
-            existing = Booking.objects.filter(
+            existing_paid = Booking.objects.filter(
                 user=user,
                 class_session=session,
                 status=Booking.STATUS_BOOKED,
+                payment_status__in=Booking.PAYMENT_COUNTED,
             ).first()
 
-            if existing:
+            if existing_paid:
                 return Response(
                     {"detail": "You already have a booking for this session."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
+            # Clear any stale pending bookings so the user can rebook.
+            pending = Booking.objects.filter(
+                user=user,
+                class_session=session,
+                status=Booking.STATUS_BOOKED,
+                payment_status=Booking.PAYMENT_PENDING,
+            )
+            for booking in pending:
+                if booking.stripe_payment_intent_id:
+                    payments.cancel_payment_intent(booking.stripe_payment_intent_id)
+                booking.status = Booking.STATUS_CANCELLED
+                booking.payment_status = Booking.PAYMENT_VOID
+                booking.save(update_fields=["status", "payment_status", "updated_at"])
         else:
             if not guest_email:
                 return Response(
