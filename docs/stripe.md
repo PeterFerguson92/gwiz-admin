@@ -50,3 +50,9 @@ python manage.py runserver
 Use test card numbers (e.g. `4242 4242 4242 4242`) when Stripe.js collects the payment
 details. The webhook endpoint automatically frees the booking and voids payment if a
 PaymentIntent fails or is cancelled.
+
+
+
+
+
+python manage.py expire_pending_bookings --minutes 30

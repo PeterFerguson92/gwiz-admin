@@ -107,6 +107,25 @@ def create_payment_intent_for_booking(booking):
     return intent
 
 
+def cancel_payment_intent(intent_id: str) -> None:
+    """
+    Best-effort cancel of a Stripe PaymentIntent.
+    """
+    if not intent_id:
+        return
+
+    try:
+        _configure_stripe()
+        stripe.PaymentIntent.cancel(intent_id)
+        logger.debug("Cancelled Stripe PaymentIntent %s", intent_id)
+    except ImproperlyConfigured:
+        logger.warning(
+            "Stripe not configured; cannot cancel PaymentIntent %s", intent_id
+        )
+    except stripe.error.StripeError as exc:
+        logger.warning("Failed to cancel PaymentIntent %s: %s", intent_id, exc)
+
+
 def create_payment_intent_for_membership(purchase):
     """
     Create a Stripe PaymentIntent for a membership purchase.

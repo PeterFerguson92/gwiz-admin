@@ -103,7 +103,10 @@ class ClassSessionSerializer(serializers.ModelSerializer):
         Calculate remaining spaces: effective capacity minus booked count.
         """
         effective_capacity = obj.capacity_effective
-        booked_count = obj.bookings.filter(status=Booking.STATUS_BOOKED).count()
+        booked_count = obj.bookings.filter(
+            status=Booking.STATUS_BOOKED,
+            payment_status__in=Booking.PAYMENT_COUNTED,
+        ).count()
         spaces_left = effective_capacity - booked_count
         return max(0, spaces_left)  # Ensure it doesn't go negative
 

@@ -12,6 +12,8 @@ from homepage.models import Trainer
 
 s3_storage = S3Boto3Storage()
 
+BOOKING_PAYMENT_COUNTED = ("included", "paid")
+
 
 class FitnessClass(models.Model):
     """
@@ -225,6 +227,7 @@ class Booking(models.Model):
         (PAYMENT_PAID, "Paid"),
         (PAYMENT_VOID, "Voided/No payment due"),
     ]
+    PAYMENT_COUNTED = BOOKING_PAYMENT_COUNTED
 
     # --- Attendance choices ---
     ATTENDANCE_UNKNOWN = "unknown"
@@ -294,7 +297,9 @@ class Booking(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["user", "class_session"],
-                condition=Q(status="booked") & Q(user__isnull=False),
+                condition=Q(status="booked")
+                & Q(user__isnull=False)
+                & Q(payment_status__in=BOOKING_PAYMENT_COUNTED),
                 name="unique_active_booking_per_session",
             )
         ]

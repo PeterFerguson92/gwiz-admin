@@ -475,7 +475,10 @@ class ClassSessionAdmin(ModelAdmin):
         qs = qs.annotate(
             _booked_count=Count(
                 "bookings",
-                filter=Q(bookings__status=Booking.STATUS_BOOKED),
+                filter=Q(
+                    bookings__status=Booking.STATUS_BOOKED,
+                    bookings__payment_status__in=Booking.PAYMENT_COUNTED,
+                ),
             )
         )
         return qs
@@ -502,7 +505,10 @@ class ClassSessionAdmin(ModelAdmin):
         # Use the annotated value when present; fall back to a query
         if hasattr(obj, "_booked_count"):
             return obj._booked_count
-        return obj.bookings.filter(status=Booking.STATUS_BOOKED).count()
+        return obj.bookings.filter(
+            status=Booking.STATUS_BOOKED,
+            payment_status__in=Booking.PAYMENT_COUNTED,
+        ).count()
 
     booked_count.short_description = "Booked"
 
