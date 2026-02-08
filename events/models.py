@@ -127,6 +127,15 @@ class EventTicket(models.Model):
         (PAYMENT_VOID, "Voided/No payment due"),
     ]
 
+    PAYMENT_PROVIDER_INCLUDED = "included"
+    PAYMENT_PROVIDER_STRIPE = "stripe"
+    PAYMENT_PROVIDER_TRUELAYER = "truelayer"
+    PAYMENT_PROVIDER_CHOICES = [
+        (PAYMENT_PROVIDER_INCLUDED, "Included"),
+        (PAYMENT_PROVIDER_STRIPE, "Stripe"),
+        (PAYMENT_PROVIDER_TRUELAYER, "TrueLayer"),
+    ]
+
     ACTIVE_STATUSES = (STATUS_RESERVED, STATUS_CONFIRMED)
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -156,11 +165,32 @@ class EventTicket(models.Model):
         choices=PAYMENT_STATUS_CHOICES,
         default=PAYMENT_PENDING,
     )
+    payment_provider = models.CharField(
+        max_length=20,
+        choices=PAYMENT_PROVIDER_CHOICES,
+        default=PAYMENT_PROVIDER_STRIPE,
+    )
     stripe_payment_intent_id = models.CharField(
         max_length=255,
         blank=True,
         null=True,
         help_text="Stripe PaymentIntent ID for paid tickets.",
+    )
+    truelayer_payment_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="TrueLayer payment ID for paid tickets.",
+    )
+    truelayer_payment_status = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Last known TrueLayer payment status.",
+    )
+    truelayer_payment_reference = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Reference sent to TrueLayer for reconciliation.",
     )
     quantity = models.PositiveIntegerField(
         default=1,

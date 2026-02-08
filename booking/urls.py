@@ -16,6 +16,7 @@ from .views import (
     MyBookingsListView,
     MyMembershipView,
     StripeWebhookView,
+    TrueLayerWebhookView,
     UpcomingClassSessionListView,
 )
 
@@ -82,6 +83,11 @@ urlpatterns = [
         "stripe/webhook/",
         StripeWebhookView.as_view(),
         name="stripe-webhook",
+    ),
+    path(
+        "truelayer/webhook/",
+        TrueLayerWebhookView.as_view(),
+        name="truelayer-webhook",
     ),
     # Memberships
     path(

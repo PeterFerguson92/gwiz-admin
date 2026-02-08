@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 
 import stripe
@@ -25,6 +26,7 @@ from booking.serializer import (
     MyBookingSerializer,
     UserMembershipSerializer,
 )
+from gwiz_admin import truelayer
 from notifications import whatsapp
 
 from . import membership, payments
@@ -272,6 +274,17 @@ class BookSessionView(APIView):
 
     def post(self, request, session_id):
         user = request.user if request.user.is_authenticated else None
+        payment_provider = request.data.get(
+            "payment_provider", Booking.PAYMENT_PROVIDER_STRIPE
+        )
+        if payment_provider not in (
+            Booking.PAYMENT_PROVIDER_STRIPE,
+            Booking.PAYMENT_PROVIDER_TRUELAYER,
+        ):
+            return Response(
+                {"detail": "Unsupported payment provider."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         guest_name = request.data.get("guest_name", "").strip()
         guest_email = request.data.get("guest_email", "").strip()
         guest_phone = request.data.get("guest_phone", "").strip()
@@ -328,6 +341,8 @@ class BookSessionView(APIView):
             for booking in pending:
                 if booking.stripe_payment_intent_id:
                     payments.cancel_payment_intent(booking.stripe_payment_intent_id)
+                if booking.truelayer_payment_id:
+                    truelayer.cancel_payment(booking.truelayer_payment_id)
                 booking.status = Booking.STATUS_CANCELLED
                 booking.payment_status = Booking.PAYMENT_VOID
                 booking.save(update_fields=["status", "payment_status", "updated_at"])
@@ -343,16 +358,19 @@ class BookSessionView(APIView):
         is_free = session_price is None or session_price <= 0
         if is_free:
             payment_status = Booking.PAYMENT_INCLUDED
+            payment_provider = Booking.PAYMENT_PROVIDER_INCLUDED
         elif user:
             can_book, reason = membership.can_book_session(user, session)
             if can_book:
                 payment_status = Booking.PAYMENT_INCLUDED
+                payment_provider = Booking.PAYMENT_PROVIDER_INCLUDED
             else:
                 payment_status = Booking.PAYMENT_PENDING
         else:
             payment_status = Booking.PAYMENT_PENDING
 
         stripe_client_secret = None
+        truelayer_authorization_url = None
 
         booking = Booking.objects.create(
             user=user,
@@ -363,6 +381,7 @@ class BookSessionView(APIView):
             class_session=session,
             status=Booking.STATUS_BOOKED,
             payment_status=payment_status,
+            payment_provider=payment_provider,
         )
 
         cancel_token = generate_cancel_token("booking", booking.id)
@@ -372,48 +391,110 @@ class BookSessionView(APIView):
                 whatsapp.send_booking_confirmation(booking)
             send_booking_confirmation_email(booking, cancel_token=cancel_token)
         else:
-            try:
-                payment_intent = payments.create_payment_intent_for_booking(booking)
-            except ImproperlyConfigured:
-                logger.exception(
-                    "Stripe is not configured; deleting booking %s", booking.id
-                )
-                booking.delete()
-                return Response(
-                    {"detail": "Online payments are currently unavailable."},
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                )
-            except ValueError as exc:
-                logger.exception(
-                    "Invalid payment configuration for booking %s: %s",
-                    booking.id,
-                    exc,
-                )
-                booking.delete()
-                return Response(
-                    {"detail": str(exc)},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            except stripe.error.StripeError as exc:
-                logger.exception(
-                    "Stripe error while creating PaymentIntent for booking %s: %s",
-                    booking.id,
-                    exc,
-                )
-                booking.delete()
-                return Response(
-                    {"detail": "Unable to start payment. Please try again."},
-                    status=status.HTTP_502_BAD_GATEWAY,
-                )
+            if payment_provider == Booking.PAYMENT_PROVIDER_TRUELAYER:
+                if not truelayer.truelayer_enabled():
+                    booking.delete()
+                    return Response(
+                        {"detail": "TrueLayer payments are not configured."},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    )
+                try:
+                    amount_minor = truelayer.to_minor_units(session.price_effective)
+                    reference = f"BOOKING-{booking.id}"
+                    return_url = request.data.get("return_url") or getattr(
+                        settings, "TRUE_LAYER_RETURN_URL", ""
+                    )
+                    webhook_url = request.build_absolute_uri(
+                        "/api/booking/truelayer/webhook/"
+                    )
+                    payment_id, auth_url = truelayer.create_payment(
+                        amount_minor=amount_minor,
+                        currency=getattr(settings, "STRIPE_CURRENCY", "gbp"),
+                        reference=reference,
+                        return_url=return_url,
+                        webhook_url=webhook_url,
+                        metadata={"booking_id": str(booking.id), "type": "booking"},
+                        payer={
+                            "name": booking.guest_name or getattr(user, "name", ""),
+                            "email": booking.guest_email or getattr(user, "email", ""),
+                            "phone": booking.guest_phone or "",
+                        },
+                    )
+                except (ImproperlyConfigured, ValueError) as exc:
+                    logger.exception(
+                        "TrueLayer configuration error for booking %s: %s",
+                        booking.id,
+                        exc,
+                    )
+                    booking.delete()
+                    return Response(
+                        {"detail": str(exc)},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                except truelayer.TrueLayerError:
+                    booking.delete()
+                    return Response(
+                        {"detail": "Unable to start payment. Please try again."},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
 
-            booking.stripe_payment_intent_id = payment_intent.id
-            booking.save(update_fields=["stripe_payment_intent_id", "updated_at"])
-            stripe_client_secret = payment_intent.client_secret
+                booking.truelayer_payment_id = payment_id
+                booking.truelayer_payment_status = "created"
+                booking.truelayer_payment_reference = reference
+                booking.save(
+                    update_fields=[
+                        "truelayer_payment_id",
+                        "truelayer_payment_status",
+                        "truelayer_payment_reference",
+                        "updated_at",
+                    ]
+                )
+                truelayer_authorization_url = auth_url
+            else:
+                try:
+                    payment_intent = payments.create_payment_intent_for_booking(booking)
+                except ImproperlyConfigured:
+                    logger.exception(
+                        "Stripe is not configured; deleting booking %s", booking.id
+                    )
+                    booking.delete()
+                    return Response(
+                        {"detail": "Online payments are currently unavailable."},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    )
+                except ValueError as exc:
+                    logger.exception(
+                        "Invalid payment configuration for booking %s: %s",
+                        booking.id,
+                        exc,
+                    )
+                    booking.delete()
+                    return Response(
+                        {"detail": str(exc)},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                except stripe.error.StripeError as exc:
+                    logger.exception(
+                        "Stripe error while creating PaymentIntent for booking %s: %s",
+                        booking.id,
+                        exc,
+                    )
+                    booking.delete()
+                    return Response(
+                        {"detail": "Unable to start payment. Please try again."},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+
+                booking.stripe_payment_intent_id = payment_intent.id
+                booking.save(update_fields=["stripe_payment_intent_id", "updated_at"])
+                stripe_client_secret = payment_intent.client_secret
 
         serializer = BookingSerializer(booking)
         data = serializer.data
         if stripe_client_secret:
             data["stripe_client_secret"] = stripe_client_secret
+        if truelayer_authorization_url:
+            data["truelayer_authorization_url"] = truelayer_authorization_url
         data["cancel_token"] = cancel_token
         return Response(data, status=status.HTTP_201_CREATED)
 
@@ -487,6 +568,11 @@ class CancelBookingView(APIView):
         booking.status = Booking.STATUS_CANCELLED
         payment_status_changed = False
         if booking.payment_status == Booking.PAYMENT_PENDING:
+            if (
+                booking.payment_provider == Booking.PAYMENT_PROVIDER_TRUELAYER
+                and booking.truelayer_payment_id
+            ):
+                truelayer.cancel_payment(booking.truelayer_payment_id)
             booking.payment_status = Booking.PAYMENT_VOID
             payment_status_changed = True
 
@@ -691,6 +777,78 @@ class StripeWebhookView(APIView):
                 "Marked booking %s as cancelled/void due to failed Stripe payment.",
                 booking.id,
             )
+
+
+@extend_schema(
+    tags=["TrueLayer"], auth=[], request=None, responses={200: OpenApiTypes.OBJECT}
+)
+class TrueLayerWebhookView(APIView):
+    """
+    Receives TrueLayer webhooks to update booking payment states.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        signature = request.META.get("HTTP_TL_SIGNATURE") or request.META.get(
+            "HTTP_X_TL_SIGNATURE"
+        )
+        timestamp = request.META.get("HTTP_X_TL_WEBHOOK_TIMESTAMP")
+        if not truelayer.verify_webhook(signature, timestamp, request.body):
+            return Response(
+                {"detail": "Invalid TrueLayer signature."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            payload = json.loads(request.body or b"{}")
+        except ValueError:
+            return Response(
+                {"detail": "Invalid payload."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        payment_id = payload.get("payment_id") or payload.get("id")
+        status_raw = payload.get("payment_status") or payload.get("status")
+        status_norm = truelayer.normalize_status(status_raw)
+        if not payment_id or not status_norm:
+            return Response(
+                {"detail": "Missing payment data."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        booking = Booking.objects.filter(truelayer_payment_id=payment_id).first()
+        if not booking:
+            return Response({"received": True}, status=status.HTTP_200_OK)
+
+        booking.truelayer_payment_status = status_norm
+
+        if truelayer.is_success_status(status_norm):
+            if booking.payment_status != Booking.PAYMENT_PAID:
+                booking.payment_status = Booking.PAYMENT_PAID
+                booking.save(
+                    update_fields=[
+                        "payment_status",
+                        "truelayer_payment_status",
+                        "updated_at",
+                    ]
+                )
+                whatsapp.send_booking_confirmation(booking)
+                send_booking_confirmation_email(
+                    booking, cancel_token=generate_cancel_token("booking", booking.id)
+                )
+        elif truelayer.is_failure_status(status_norm):
+            changed_fields = ["truelayer_payment_status"]
+            if booking.status != Booking.STATUS_CANCELLED:
+                booking.status = Booking.STATUS_CANCELLED
+                changed_fields.append("status")
+            if booking.payment_status != Booking.PAYMENT_VOID:
+                booking.payment_status = Booking.PAYMENT_VOID
+                changed_fields.append("payment_status")
+            changed_fields.append("updated_at")
+            booking.save(update_fields=changed_fields)
+            whatsapp.send_booking_cancellation(booking)
+
+        return Response({"received": True}, status=status.HTTP_200_OK)
 
 
 @extend_schema(

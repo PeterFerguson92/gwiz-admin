@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 
 import stripe
@@ -15,6 +16,7 @@ from rest_framework.views import APIView
 
 from booking import membership
 from booking.tokens import generate_cancel_token, verify_cancel_token
+from gwiz_admin import truelayer
 
 from . import payments
 from .email_utils import send_ticket_cancellation_email, send_ticket_confirmation_email
@@ -78,6 +80,17 @@ class PurchaseTicketView(APIView):
 
     def post(self, request, event_id):
         user = request.user if request.user.is_authenticated else None
+        payment_provider = request.data.get(
+            "payment_provider", EventTicket.PAYMENT_PROVIDER_STRIPE
+        )
+        if payment_provider not in (
+            EventTicket.PAYMENT_PROVIDER_STRIPE,
+            EventTicket.PAYMENT_PROVIDER_TRUELAYER,
+        ):
+            return Response(
+                {"detail": "Unsupported payment provider."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         guest_name = request.data.get("guest_name", "").strip()
         guest_email = request.data.get("guest_email", "").strip()
         guest_phone = request.data.get("guest_phone", "").strip()
@@ -143,6 +156,8 @@ class PurchaseTicketView(APIView):
             status_value = (
                 EventTicket.STATUS_CONFIRMED if is_free else EventTicket.STATUS_RESERVED
             )
+            if is_free:
+                payment_provider = EventTicket.PAYMENT_PROVIDER_INCLUDED
 
             ticket = EventTicket.objects.create(
                 user=user,
@@ -154,47 +169,113 @@ class PurchaseTicketView(APIView):
                 quantity=quantity,
                 status=status_value,
                 payment_status=payment_status,
+                payment_provider=payment_provider,
             )
 
         client_secret = None
         cancel_token = None
+        truelayer_authorization_url = None
 
         if not is_free:
-            try:
-                intent = payments.create_payment_intent_for_ticket(ticket)
-            except ImproperlyConfigured:
-                logger.exception(
-                    "Stripe is not configured; deleting ticket %s", ticket.id
-                )
-                ticket.delete()
-                return Response(
-                    {"detail": "Online payments are currently unavailable."},
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                )
-            except ValueError as exc:
-                logger.exception(
-                    "Invalid payment configuration for ticket %s: %s", ticket.id, exc
-                )
-                ticket.delete()
-                return Response(
-                    {"detail": str(exc)},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            except stripe.error.StripeError as exc:
-                logger.exception(
-                    "Stripe error while creating PaymentIntent for ticket %s: %s",
-                    ticket.id,
-                    exc,
-                )
-                ticket.delete()
-                return Response(
-                    {"detail": "Unable to start payment. Please try again."},
-                    status=status.HTTP_502_BAD_GATEWAY,
-                )
+            if payment_provider == EventTicket.PAYMENT_PROVIDER_TRUELAYER:
+                if not truelayer.truelayer_enabled():
+                    ticket.delete()
+                    return Response(
+                        {"detail": "TrueLayer payments are not configured."},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    )
+                try:
+                    amount_minor = (
+                        truelayer.to_minor_units(event.ticket_price) * quantity
+                    )
+                    reference = f"EVENT-{ticket.id}"
+                    return_url = request.data.get("return_url") or getattr(
+                        settings, "TRUE_LAYER_RETURN_URL", ""
+                    )
+                    webhook_url = request.build_absolute_uri(
+                        "/api/events/truelayer/webhook/"
+                    )
+                    payment_id, auth_url = truelayer.create_payment(
+                        amount_minor=amount_minor,
+                        currency=getattr(settings, "STRIPE_CURRENCY", "gbp"),
+                        reference=reference,
+                        return_url=return_url,
+                        webhook_url=webhook_url,
+                        metadata={"ticket_id": str(ticket.id), "type": "event_ticket"},
+                        payer={
+                            "name": ticket.guest_name or getattr(user, "name", ""),
+                            "email": ticket.guest_email or getattr(user, "email", ""),
+                            "phone": ticket.guest_phone or "",
+                        },
+                    )
+                except (ImproperlyConfigured, ValueError) as exc:
+                    logger.exception(
+                        "TrueLayer configuration error for ticket %s: %s",
+                        ticket.id,
+                        exc,
+                    )
+                    ticket.delete()
+                    return Response(
+                        {"detail": str(exc)},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                except truelayer.TrueLayerError:
+                    ticket.delete()
+                    return Response(
+                        {"detail": "Unable to start payment. Please try again."},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
 
-            ticket.stripe_payment_intent_id = intent.id
-            ticket.save(update_fields=["stripe_payment_intent_id", "updated_at"])
-            client_secret = intent.client_secret
+                ticket.truelayer_payment_id = payment_id
+                ticket.truelayer_payment_status = "created"
+                ticket.truelayer_payment_reference = reference
+                ticket.save(
+                    update_fields=[
+                        "truelayer_payment_id",
+                        "truelayer_payment_status",
+                        "truelayer_payment_reference",
+                        "updated_at",
+                    ]
+                )
+                truelayer_authorization_url = auth_url
+            else:
+                try:
+                    intent = payments.create_payment_intent_for_ticket(ticket)
+                except ImproperlyConfigured:
+                    logger.exception(
+                        "Stripe is not configured; deleting ticket %s", ticket.id
+                    )
+                    ticket.delete()
+                    return Response(
+                        {"detail": "Online payments are currently unavailable."},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    )
+                except ValueError as exc:
+                    logger.exception(
+                        "Invalid payment configuration for ticket %s: %s",
+                        ticket.id,
+                        exc,
+                    )
+                    ticket.delete()
+                    return Response(
+                        {"detail": str(exc)},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                except stripe.error.StripeError as exc:
+                    logger.exception(
+                        "Stripe error while creating PaymentIntent for ticket %s: %s",
+                        ticket.id,
+                        exc,
+                    )
+                    ticket.delete()
+                    return Response(
+                        {"detail": "Unable to start payment. Please try again."},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+
+                ticket.stripe_payment_intent_id = intent.id
+                ticket.save(update_fields=["stripe_payment_intent_id", "updated_at"])
+                client_secret = intent.client_secret
         else:
             # Free or membership-included tickets confirm immediately; consume credits when needed
             if use_membership:
@@ -210,6 +291,8 @@ class PurchaseTicketView(APIView):
         data = serializer.data
         if client_secret:
             data["stripe_client_secret"] = client_secret
+        if truelayer_authorization_url:
+            data["truelayer_authorization_url"] = truelayer_authorization_url
         if is_free:
             data["email_sent"] = True
         if user is None:
@@ -283,6 +366,11 @@ class CancelTicketView(APIView):
 
         payment_status_changed = False
         if ticket.payment_status == EventTicket.PAYMENT_PENDING:
+            if (
+                ticket.payment_provider == EventTicket.PAYMENT_PROVIDER_TRUELAYER
+                and ticket.truelayer_payment_id
+            ):
+                truelayer.cancel_payment(ticket.truelayer_payment_id)
             ticket.payment_status = EventTicket.PAYMENT_VOID
             payment_status_changed = True
         elif ticket.payment_status == EventTicket.PAYMENT_PAID:
@@ -450,3 +538,80 @@ class StripeWebhookView(APIView):
                 ticket.id,
                 email_sent,
             )
+
+
+@extend_schema(
+    tags=["Events"],
+    auth=[],
+    request=None,
+    responses={200: OpenApiTypes.OBJECT},
+)
+class TrueLayerWebhookView(APIView):
+    """
+    Receives TrueLayer webhooks to update ticket payment states.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        signature = request.META.get("HTTP_TL_SIGNATURE") or request.META.get(
+            "HTTP_X_TL_SIGNATURE"
+        )
+        timestamp = request.META.get("HTTP_X_TL_WEBHOOK_TIMESTAMP")
+        if not truelayer.verify_webhook(signature, timestamp, request.body):
+            return Response(
+                {"detail": "Invalid TrueLayer signature."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            payload = json.loads(request.body or b"{}")
+        except ValueError:
+            return Response(
+                {"detail": "Invalid payload."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        payment_id = payload.get("payment_id") or payload.get("id")
+        status_raw = payload.get("payment_status") or payload.get("status")
+        status_norm = truelayer.normalize_status(status_raw)
+        if not payment_id or not status_norm:
+            return Response(
+                {"detail": "Missing payment data."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        ticket = EventTicket.objects.filter(truelayer_payment_id=payment_id).first()
+        if not ticket:
+            return Response({"received": True}, status=status.HTTP_200_OK)
+
+        ticket.truelayer_payment_status = status_norm
+
+        if truelayer.is_success_status(status_norm):
+            if ticket.payment_status != EventTicket.PAYMENT_PAID:
+                ticket.payment_status = EventTicket.PAYMENT_PAID
+                ticket.status = EventTicket.STATUS_CONFIRMED
+                ticket.save(
+                    update_fields=[
+                        "payment_status",
+                        "status",
+                        "truelayer_payment_status",
+                        "updated_at",
+                    ]
+                )
+                cancel_token = None
+                if ticket.user_id is None:
+                    cancel_token = generate_cancel_token("event_ticket", ticket.id)
+                send_ticket_confirmation_email(ticket, cancel_token=cancel_token)
+        elif truelayer.is_failure_status(status_norm):
+            changed_fields = ["truelayer_payment_status"]
+            if ticket.status != EventTicket.STATUS_CANCELLED:
+                ticket.status = EventTicket.STATUS_CANCELLED
+                changed_fields.append("status")
+            if ticket.payment_status != EventTicket.PAYMENT_VOID:
+                ticket.payment_status = EventTicket.PAYMENT_VOID
+                changed_fields.append("payment_status")
+            changed_fields.append("updated_at")
+            ticket.save(update_fields=changed_fields)
+            send_ticket_cancellation_email(ticket)
+
+        return Response({"received": True}, status=status.HTTP_200_OK)

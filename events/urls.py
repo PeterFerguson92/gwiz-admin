@@ -7,6 +7,7 @@ from .views import (
     MyTicketsListView,
     PurchaseTicketView,
     StripeWebhookView,
+    TrueLayerWebhookView,
     UpcomingEventListView,
 )
 
@@ -26,4 +27,9 @@ urlpatterns = [
         name="cancel-event-ticket",
     ),
     path("stripe/webhook/", StripeWebhookView.as_view(), name="event-stripe-webhook"),
+    path(
+        "truelayer/webhook/",
+        TrueLayerWebhookView.as_view(),
+        name="event-truelayer-webhook",
+    ),
 ]

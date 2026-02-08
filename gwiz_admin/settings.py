@@ -426,6 +426,23 @@ STRIPE_PAYMENT_DESCRIPTION_PREFIX = env(
     default="Gwiz Class Booking",
 )
 
+# TrueLayer Payments (Open Banking)
+TRUE_LAYER_CLIENT_ID = env("TRUE_LAYER_CLIENT_ID", default="")
+TRUE_LAYER_KEY_ID = env("TRUE_LAYER_KEY_ID", default="")
+TRUE_LAYER_PRIVATE_KEY = env("TRUE_LAYER_PRIVATE_KEY", default="")
+TRUE_LAYER_MERCHANT_ACCOUNT_ID = env("TRUE_LAYER_MERCHANT_ACCOUNT_ID", default="")
+TRUE_LAYER_API_BASE = env(
+    "TRUE_LAYER_API_BASE", default="https://payment.truelayer.com"
+)
+TRUE_LAYER_AUTH_AUDIENCE = env(
+    "TRUE_LAYER_AUTH_AUDIENCE", default="https://payment.truelayer.com"
+)
+TRUE_LAYER_WEBHOOK_SIGNING_KEY = env("TRUE_LAYER_WEBHOOK_SIGNING_KEY", default="")
+TRUE_LAYER_RETURN_URL = env("TRUE_LAYER_RETURN_URL", default="")
+TRUE_LAYER_WEBHOOK_TOLERANCE_SEC = env.int(
+    "TRUE_LAYER_WEBHOOK_TOLERANCE_SEC", default=300
+)
+
 WHATSAPP_NOTIFICATIONS_ENABLED = env.bool(
     "WHATSAPP_NOTIFICATIONS_ENABLED", default=False
 )

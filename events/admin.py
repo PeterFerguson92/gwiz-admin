@@ -25,7 +25,10 @@ class EventTicketInline(admin.TabularInline):
         "quantity",
         "status",
         "payment_status",
+        "payment_provider",
         "stripe_payment_intent_id",
+        "truelayer_payment_id",
+        "truelayer_payment_status",
         "created_at",
     )
     readonly_fields = ("user_display", "created_at")
@@ -96,9 +99,10 @@ class EventTicketAdmin(ModelAdmin):
         "quantity",
         "status",
         "payment_status",
+        "payment_provider",
         "created_at",
     )
-    list_filter = ("status", "payment_status", "event")
+    list_filter = ("status", "payment_status", "payment_provider", "event")
     search_fields = (
         "id",
         "user__email",

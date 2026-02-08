@@ -676,6 +676,7 @@ class BookingAdmin(admin.ModelAdmin):
         "class_time",
         "status",
         "payment_status",
+        "payment_provider",
         "attendance_status",
         "created_at",
     )
@@ -683,6 +684,7 @@ class BookingAdmin(admin.ModelAdmin):
     list_filter = (
         "status",
         "payment_status",
+        "payment_provider",
         "attendance_status",
         "class_session__fitness_class",
         "class_session__date",
@@ -729,7 +731,11 @@ class BookingAdmin(admin.ModelAdmin):
             "Payment details",
             {
                 "classes": ("gwiz-card", "gwiz-grid", "gwiz-status-card"),
-                "fields": (("payment_status", "stripe_payment_intent_id"),),
+                "fields": (
+                    ("payment_status", "payment_provider"),
+                    ("stripe_payment_intent_id", "truelayer_payment_id"),
+                    ("truelayer_payment_status", "truelayer_payment_reference"),
+                ),
             },
         ),
         (

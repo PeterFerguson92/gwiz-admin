@@ -229,6 +229,16 @@ class Booking(models.Model):
     ]
     PAYMENT_COUNTED = BOOKING_PAYMENT_COUNTED
 
+    # --- Payment provider choices ---
+    PAYMENT_PROVIDER_INCLUDED = "included"
+    PAYMENT_PROVIDER_STRIPE = "stripe"
+    PAYMENT_PROVIDER_TRUELAYER = "truelayer"
+    PAYMENT_PROVIDER_CHOICES = [
+        (PAYMENT_PROVIDER_INCLUDED, "Included"),
+        (PAYMENT_PROVIDER_STRIPE, "Stripe"),
+        (PAYMENT_PROVIDER_TRUELAYER, "TrueLayer"),
+    ]
+
     # --- Attendance choices ---
     ATTENDANCE_UNKNOWN = "unknown"
     ATTENDANCE_PRESENT = "present"
@@ -274,12 +284,33 @@ class Booking(models.Model):
         choices=PAYMENT_STATUS_CHOICES,
         default=PAYMENT_INCLUDED,
     )
+    payment_provider = models.CharField(
+        max_length=20,
+        choices=PAYMENT_PROVIDER_CHOICES,
+        default=PAYMENT_PROVIDER_STRIPE,
+    )
 
     stripe_payment_intent_id = models.CharField(
         max_length=255,
         blank=True,
         null=True,
         help_text="Stripe PaymentIntent ID for PAYG bookings.",
+    )
+    truelayer_payment_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="TrueLayer payment ID for PAYG bookings.",
+    )
+    truelayer_payment_status = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Last known TrueLayer payment status.",
+    )
+    truelayer_payment_reference = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Reference sent to TrueLayer for reconciliation.",
     )
 
     attendance_status = models.CharField(
