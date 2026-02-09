@@ -81,6 +81,7 @@ def create_payment_intent_for_booking(booking):
         "type": "booking",
     }
 
+    allow_redirects = getattr(settings, "STRIPE_ALLOW_REDIRECTS", "always")
     kwargs: Dict[str, Any] = {
         "amount": amount_cents,
         "currency": getattr(settings, "STRIPE_CURRENCY", "usd"),
@@ -88,7 +89,7 @@ def create_payment_intent_for_booking(booking):
         "description": _payment_description(booking),
         "automatic_payment_methods": {
             "enabled": True,
-            "allow_redirects": "never",  # avoid return_url requirement in CLI/local tests
+            "allow_redirects": allow_redirects,
         },
     }
 
@@ -139,6 +140,7 @@ def create_payment_intent_for_membership(purchase):
         "plan_id": str(purchase.plan_id),
     }
 
+    allow_redirects = getattr(settings, "STRIPE_ALLOW_REDIRECTS", "always")
     kwargs: Dict[str, Any] = {
         "amount": amount_cents,
         "currency": getattr(settings, "STRIPE_CURRENCY", "usd"),
@@ -146,7 +148,7 @@ def create_payment_intent_for_membership(purchase):
         "description": _membership_payment_description(purchase.plan.name),
         "automatic_payment_methods": {
             "enabled": True,
-            "allow_redirects": "never",
+            "allow_redirects": allow_redirects,
         },
     }
 
