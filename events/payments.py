@@ -64,6 +64,7 @@ def create_payment_intent_for_ticket(ticket):
         "type": "event_ticket",
     }
 
+    allow_redirects = getattr(settings, "STRIPE_ALLOW_REDIRECTS", "always")
     kwargs: Dict[str, Any] = {
         "amount": amount_cents,
         "currency": getattr(settings, "STRIPE_CURRENCY", "usd"),
@@ -71,7 +72,7 @@ def create_payment_intent_for_ticket(ticket):
         "description": _payment_description(ticket),
         "automatic_payment_methods": {
             "enabled": True,
-            "allow_redirects": "never",  # avoid return_url requirement in CLI/local tests
+            "allow_redirects": allow_redirects,
         },
     }
 

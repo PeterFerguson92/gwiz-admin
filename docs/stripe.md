@@ -1,6 +1,6 @@
 # Stripe Integration Overview
 
-The booking API can now create and manage card payments via Stripe. This quick reference
+The booking API can now create and manage card and Pay by Bank payments via Stripe. This quick reference
 summarises what needs to be configured in each environment and how to test locally.
 
 ## Configuration
@@ -13,13 +13,15 @@ Set the following environment variables (already stubbed in `dev.env` / `prod.en
 | `STRIPE_PUBLISHABLE_KEY` | Key exposed to the frontend for Stripe.js. |
 | `STRIPE_WEBHOOK_SECRET` | Secret used to verify webhook payloads (`stripe listen ...`). |
 | `STRIPE_CURRENCY` | ISO currency code used for PaymentIntents (`gbp` by default). |
+| `STRIPE_ALLOW_REDIRECTS` | Controls redirect-based methods (set to `always` for Pay by Bank). |
 | `STRIPE_PAYMENT_DESCRIPTION_PREFIX` | Optional label prefixed in PaymentIntent descriptions. |
 
 ## Booking Flow
 
 1. When a member does *not* have credits, `POST /api/booking/sessions/<session_id>/book/`
    responds with the normal booking payload plus a `stripe_client_secret`.
-2. The frontend should call `stripe.confirmPayment` with that client secret.
+2. The frontend should call `stripe.confirmPayment` with that client secret and provide a
+   `return_url` when redirect-based methods (like Pay by Bank) are available.
 3. Successful confirmations trigger Stripe to send `payment_intent.succeeded` to
    `/api/booking/stripe/webhook/`, which marks the booking as `paid`.
 
