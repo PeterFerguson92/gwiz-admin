@@ -1,4 +1,5 @@
 import uuid
+from calendar import monthrange
 
 from django.db import models
 from django.db.models import Q  # make sure this import exists at the top
@@ -397,6 +398,11 @@ class UserMembership(models.Model):
     )
     starts_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
+    next_reset_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When monthly credits should next reset.",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -406,6 +412,22 @@ class UserMembership(models.Model):
 
     def __str__(self):
         return f"{self.user} – {self.plan.name} ({self.status})"
+
+    @staticmethod
+    def add_calendar_month(value):
+        """
+        Return the same timestamp in the next calendar month, clamping
+        the day if the next month has fewer days.
+        """
+        year = value.year + (value.month // 12)
+        month = 1 if value.month == 12 else value.month + 1
+        day = min(value.day, monthrange(year, month)[1])
+        return value.replace(year=year, month=month, day=day)
+
+    @classmethod
+    def initial_next_reset_at(cls, starts_at=None):
+        start = starts_at or timezone.now()
+        return cls.add_calendar_month(start)
 
     @property
     def is_active_membership(self) -> bool:

@@ -307,11 +307,12 @@ class UserMembershipAdmin(ModelAdmin):
         "remaining_events",
         "starts_at",
         "expires_at",
+        "next_reset_at",
     )
     list_filter = ("status", "plan")
     search_fields = ("user__email", "user__first_name", "user__last_name", "plan__name")
     autocomplete_fields = ("user", "plan")
-    readonly_fields = ("starts_at", "created_at", "updated_at")
+    readonly_fields = ("starts_at", "next_reset_at", "created_at", "updated_at")
     fieldsets = (
         (
             "Membership",
@@ -331,7 +332,7 @@ class UserMembershipAdmin(ModelAdmin):
             "Dates",
             {
                 "classes": ("gwiz-card", "gwiz-grid"),
-                "fields": ("expires_at",),
+                "fields": ("expires_at", "next_reset_at"),
             },
         ),
         (

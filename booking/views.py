@@ -617,6 +617,9 @@ class StripeWebhookView(APIView):
                         remaining_class_sessions=purchase.plan.included_class_sessions,
                         remaining_events=purchase.plan.included_events,
                         status=UserMembership.STATUS_ACTIVE,
+                        next_reset_at=UserMembership.initial_next_reset_at(
+                            timezone.now()
+                        ),
                     )
                     logger.info(
                         "Marked membership purchase %s as paid and granted membership.",
@@ -808,6 +811,7 @@ class MembershipChangeView(APIView):
                 remaining_class_sessions=plan.included_class_sessions,
                 remaining_events=plan.included_events,
                 status=UserMembership.STATUS_ACTIVE,
+                next_reset_at=UserMembership.initial_next_reset_at(timezone.now()),
             )
             serializer = UserMembershipSerializer(membership_obj)
             return Response(
@@ -933,6 +937,7 @@ class MembershipPurchaseView(APIView):
                 remaining_class_sessions=plan.included_class_sessions,
                 remaining_events=plan.included_events,
                 status=UserMembership.STATUS_ACTIVE,
+                next_reset_at=UserMembership.initial_next_reset_at(timezone.now()),
             )
             serializer = UserMembershipSerializer(membership_obj)
             return Response(

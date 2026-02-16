@@ -238,6 +238,7 @@ class UserMembershipSerializer(serializers.ModelSerializer):
             "remaining_events",
             "starts_at",
             "expires_at",
+            "next_reset_at",
             "created_at",
             "updated_at",
         ]
