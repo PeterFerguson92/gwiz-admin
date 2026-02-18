@@ -1,6 +1,6 @@
 import datetime
 import logging
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -37,7 +37,7 @@ class Command(BaseCommand):
         dry_run = options["dry_run"]
         now = timezone.now()
         today = now.date()
-        renew_url = self._renew_url()
+        base_renew_url = self._renew_url()
 
         qs = (
             UserMembership.objects.select_related("user", "plan")
@@ -83,6 +83,7 @@ class Command(BaseCommand):
                         update_fields=["status", "expires_at", "updated_at"]
                     )
 
+                renew_url = self._renew_url_for_membership(base_renew_url, membership)
                 email_sent = send_membership_renewal_email(
                     membership,
                     reminder_type=reminder_type,
@@ -127,8 +128,26 @@ class Command(BaseCommand):
     def _renew_url(self) -> str:
         explicit = getattr(settings, "MEMBERSHIP_RENEW_URL", "").strip()
         if explicit:
+            if not urlparse(explicit).scheme:
+                logger.warning(
+                    "MEMBERSHIP_RENEW_URL is not absolute (%s). Reminder links may break.",
+                    explicit,
+                )
             return explicit
 
         base = getattr(settings, "PUBLIC_SITE_URL", "").strip() or "/"
         # Default fallback; can be overridden via MEMBERSHIP_RENEW_URL.
-        return urljoin(base if base.endswith("/") else f"{base}/", "membership")
+        renew_url = urljoin(base if base.endswith("/") else f"{base}/", "membership")
+        if not urlparse(renew_url).scheme:
+            logger.warning(
+                "Derived membership renew URL is not absolute (%s). "
+                "Set MEMBERSHIP_RENEW_URL to a full https URL.",
+                renew_url,
+            )
+        return renew_url
+
+    def _renew_url_for_membership(self, base_renew_url: str, membership) -> str:
+        parsed = urlparse(base_renew_url)
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        query["plan_id"] = str(membership.plan_id)
+        return urlunparse(parsed._replace(query=urlencode(query)))
