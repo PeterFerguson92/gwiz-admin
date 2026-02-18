@@ -413,6 +413,19 @@ class UserMembership(models.Model):
     def __str__(self):
         return f"{self.user} – {self.plan.name} ({self.status})"
 
+    def save(self, *args, **kwargs):
+        """
+        Keep next_reset_at aligned with expires_at when expires_at is set.
+        """
+        update_fields = kwargs.get("update_fields")
+        if self.expires_at and self.next_reset_at != self.expires_at:
+            self.next_reset_at = self.expires_at
+            if update_fields is not None:
+                update_fields = set(update_fields)
+                update_fields.add("next_reset_at")
+                kwargs["update_fields"] = list(update_fields)
+        super().save(*args, **kwargs)
+
     @staticmethod
     def add_calendar_month(value):
         """
