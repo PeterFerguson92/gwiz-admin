@@ -1,5 +1,4 @@
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 
 from booking.models import MembershipUsage, UserMembership
@@ -7,26 +6,24 @@ from booking.models import MembershipUsage, UserMembership
 
 def _reset_membership_if_due(membership, now):
     """
-    Reset monthly credits when the membership cycle boundary is reached.
+    Ensure cycle metadata is initialized and expire membership when due.
     """
     next_reset_at = membership.next_reset_at
     changed_fields = []
 
     if next_reset_at is None:
         base = membership.starts_at or now
-        membership.next_reset_at = UserMembership.initial_next_reset_at(base)
-        changed_fields.append("next_reset_at")
-    elif now >= next_reset_at:
-        membership.remaining_class_sessions = membership.plan.included_class_sessions
-        membership.remaining_events = membership.plan.included_events
-
-        while now >= next_reset_at:
-            next_reset_at = UserMembership.add_calendar_month(next_reset_at)
-
+        next_reset_at = UserMembership.initial_next_reset_at(base)
         membership.next_reset_at = next_reset_at
-        changed_fields.extend(
-            ["remaining_class_sessions", "remaining_events", "next_reset_at"]
-        )
+        changed_fields.append("next_reset_at")
+
+    if membership.expires_at is None:
+        membership.expires_at = next_reset_at
+        changed_fields.append("expires_at")
+
+    if now >= next_reset_at and membership.status == UserMembership.STATUS_ACTIVE:
+        membership.status = UserMembership.STATUS_EXPIRED
+        changed_fields.append("status")
 
     if changed_fields:
         membership.save(update_fields=[*changed_fields, "updated_at"])
@@ -42,12 +39,13 @@ def _get_active_membership(user):
     qs = UserMembership.objects.select_for_update().filter(
         status=UserMembership.STATUS_ACTIVE, user=user
     )
-    qs = qs.filter(Q(expires_at__isnull=True) | Q(expires_at__gte=now))
     membership = qs.order_by("-starts_at").first()
     if not membership:
         return None
 
     _reset_membership_if_due(membership, now)
+    if membership.status != UserMembership.STATUS_ACTIVE:
+        return None
     return membership
 
 

@@ -248,3 +248,50 @@ def send_booking_cancellation(booking) -> bool:
     )
     _notify_admins_of_booking_event(booking, "cancelled")
     return result
+
+
+def send_membership_renewal_reminder(
+    membership,
+    *,
+    reminder_type: str,
+    renew_url: str,
+) -> bool:
+    if not _is_enabled():
+        logger.info(
+            "Skipping WhatsApp membership reminder for %s because notifications are disabled.",
+            membership.id,
+        )
+        return False
+
+    user = membership.user
+    if not user:
+        return False
+
+    user_name = _format_user_name(user)
+    plan_name = membership.plan.name
+    reset_label = (
+        membership.next_reset_at.strftime("%a %d %b %Y %H:%M")
+        if membership.next_reset_at
+        else ""
+    )
+
+    if reminder_type == "renew_7_days":
+        lead_text = "Your membership renews in 7 days."
+    elif reminder_type == "renew_3_days":
+        lead_text = "Your membership renews in 3 days."
+    elif reminder_type == "renew_1_day":
+        lead_text = "Your membership renews tomorrow."
+    else:
+        lead_text = "Your membership has expired."
+
+    body = (
+        f"Hi {user_name}, {lead_text} "
+        f"Plan: {plan_name}. Renewal date: {reset_label}. "
+        f"Renew here: {renew_url}"
+    )
+    return send_whatsapp_message(
+        to_number=user.phone_number,
+        body=body,
+        template_sid=None,
+        template_vars=None,
+    )

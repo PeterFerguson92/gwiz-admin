@@ -469,6 +469,45 @@ class MembershipUsage(models.Model):
         return f"{self.kind} usage ({self.amount}) for {self.membership}"
 
 
+class MembershipReminderLog(models.Model):
+    TYPE_RENEW_7_DAYS = "renew_7_days"
+    TYPE_RENEW_3_DAYS = "renew_3_days"
+    TYPE_RENEW_1_DAY = "renew_1_day"
+    TYPE_EXPIRED = "expired"
+    TYPE_CHOICES = [
+        (TYPE_RENEW_7_DAYS, "Renewal reminder (7 days)"),
+        (TYPE_RENEW_3_DAYS, "Renewal reminder (3 days)"),
+        (TYPE_RENEW_1_DAY, "Renewal reminder (1 day)"),
+        (TYPE_EXPIRED, "Membership expired"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    membership = models.ForeignKey(
+        UserMembership,
+        related_name="reminder_logs",
+        on_delete=models.CASCADE,
+    )
+    reminder_type = models.CharField(max_length=30, choices=TYPE_CHOICES)
+    cycle_reset_at = models.DateTimeField(
+        help_text="The reset/expiry boundary this reminder belongs to.",
+    )
+    email_sent = models.BooleanField(default=False)
+    whatsapp_sent = models.BooleanField(default=False)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-sent_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["membership", "reminder_type", "cycle_reset_at"],
+                name="unique_membership_reminder_per_cycle",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.reminder_type} for {self.membership}"
+
+
 class MembershipPurchase(models.Model):
     STATUS_PENDING = "pending"
     STATUS_PAID = "paid"

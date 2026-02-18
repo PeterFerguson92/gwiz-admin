@@ -2,14 +2,21 @@ import datetime
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
 
 from booking import membership
-from booking.models import ClassSession, FitnessClass, MembershipPlan, UserMembership
+from booking.models import (
+    ClassSession,
+    FitnessClass,
+    MembershipPlan,
+    MembershipReminderLog,
+    UserMembership,
+)
 
 
-class MembershipMonthlyResetTests(TestCase):
+class MembershipLifecycleTests(TestCase):
     def setUp(self):
         user_model = get_user_model()
         self.user = user_model.objects.create_user(
@@ -38,36 +45,39 @@ class MembershipMonthlyResetTests(TestCase):
             end_time=datetime.time(11, 0),
         )
 
-    def test_can_book_session_resets_membership_when_cycle_is_due(self):
+    def test_can_book_session_expires_membership_when_cycle_is_due(self):
         now = timezone.now()
         membership_obj = UserMembership.objects.create(
             user=self.user,
             plan=self.plan,
-            remaining_class_sessions=0,
-            remaining_events=0,
+            remaining_class_sessions=2,
+            remaining_events=1,
             status=UserMembership.STATUS_ACTIVE,
             starts_at=now - datetime.timedelta(days=35),
             next_reset_at=now - datetime.timedelta(days=1),
+            expires_at=now - datetime.timedelta(days=1),
         )
 
         can_book, _ = membership.can_book_session(self.user, self.class_session)
         membership_obj.refresh_from_db()
 
-        self.assertTrue(can_book)
-        self.assertEqual(membership_obj.remaining_class_sessions, 5)
-        self.assertEqual(membership_obj.remaining_events, 2)
-        self.assertGreater(membership_obj.next_reset_at, now)
+        self.assertFalse(can_book)
+        self.assertEqual(membership_obj.status, UserMembership.STATUS_EXPIRED)
+        self.assertEqual(membership_obj.remaining_class_sessions, 2)
+        self.assertEqual(membership_obj.remaining_events, 1)
 
-    def test_consume_credit_uses_reset_balance_after_month_boundary(self):
+    def test_consume_credit_succeeds_when_membership_is_in_cycle(self):
         now = timezone.now()
+        reset_at = now + datetime.timedelta(days=10)
         membership_obj = UserMembership.objects.create(
             user=self.user,
             plan=self.plan,
-            remaining_class_sessions=0,
-            remaining_events=0,
+            remaining_class_sessions=5,
+            remaining_events=2,
             status=UserMembership.STATUS_ACTIVE,
-            starts_at=now - datetime.timedelta(days=35),
-            next_reset_at=now - datetime.timedelta(days=1),
+            starts_at=now - datetime.timedelta(days=20),
+            next_reset_at=reset_at,
+            expires_at=reset_at,
         )
 
         consumed = membership.consume_credit(
@@ -80,4 +90,32 @@ class MembershipMonthlyResetTests(TestCase):
         self.assertTrue(consumed)
         self.assertEqual(membership_obj.remaining_class_sessions, 4)
         self.assertEqual(membership_obj.remaining_events, 2)
-        self.assertGreater(membership_obj.next_reset_at, now)
+
+    def test_membership_reminder_log_is_unique_per_cycle(self):
+        now = timezone.now()
+        reset_at = now + datetime.timedelta(days=7)
+        membership_obj = UserMembership.objects.create(
+            user=self.user,
+            plan=self.plan,
+            remaining_class_sessions=5,
+            remaining_events=2,
+            status=UserMembership.STATUS_ACTIVE,
+            next_reset_at=reset_at,
+            expires_at=reset_at,
+        )
+        MembershipReminderLog.objects.create(
+            membership=membership_obj,
+            reminder_type=MembershipReminderLog.TYPE_RENEW_7_DAYS,
+            cycle_reset_at=reset_at,
+            email_sent=True,
+            whatsapp_sent=False,
+        )
+
+        with self.assertRaises(IntegrityError):
+            MembershipReminderLog.objects.create(
+                membership=membership_obj,
+                reminder_type=MembershipReminderLog.TYPE_RENEW_7_DAYS,
+                cycle_reset_at=reset_at,
+                email_sent=True,
+                whatsapp_sent=True,
+            )

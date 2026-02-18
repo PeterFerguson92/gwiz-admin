@@ -71,7 +71,6 @@ def send_booking_confirmation_email(booking, cancel_token: str | None = None) ->
     )
     message.template_id = template_id
     message.dynamic_template_data = data
-    # Ensure subject is set even with dynamic templates
     if message.personalizations:
         message.personalizations[0].subject = subject
 
@@ -96,5 +95,99 @@ def send_booking_confirmation_email(booking, cancel_token: str | None = None) ->
             "Failed to send booking confirmation email for booking %s to %s",
             booking.id,
             to_email,
+        )
+        return False
+
+
+def send_membership_renewal_email(
+    membership,
+    *,
+    reminder_type: str,
+    renew_url: str,
+) -> bool:
+    client = _get_sendgrid_client()
+    if client is None:
+        return False
+
+    user = membership.user
+    to_email = getattr(user, "email", "")
+    if not to_email:
+        logger.warning(
+            "Membership %s has no user email; skipping renewal reminder.",
+            membership.id,
+        )
+        return False
+
+    reset_label = (
+        membership.next_reset_at.strftime("%Y-%m-%d %H:%M")
+        if membership.next_reset_at
+        else ""
+    )
+    plan_name = membership.plan.name
+    user_name = user.first_name or user.full_name or user.email
+
+    if reminder_type == "renew_7_days":
+        subject = f"FSXCG | Membership renewal due in 7 days ({plan_name})"
+        lead_text = "Your membership renews in 7 days."
+    elif reminder_type == "renew_3_days":
+        subject = f"FSXCG | Membership renewal due in 3 days ({plan_name})"
+        lead_text = "Your membership renews in 3 days."
+    elif reminder_type == "renew_1_day":
+        subject = f"FSXCG | Membership renewal due tomorrow ({plan_name})"
+        lead_text = "Your membership renews tomorrow."
+    else:
+        subject = f"FSXCG | Membership expired ({plan_name})"
+        lead_text = "Your membership has expired."
+
+    plain_message = (
+        f"Hi {user_name},\n\n"
+        f"{lead_text}\n"
+        f"Plan: {plan_name}\n"
+        f"Renewal date: {reset_label}\n\n"
+        f"Renew now: {renew_url}\n\n"
+        "If you already renewed, you can ignore this message.\n\n"
+        "The FSXCG Team"
+    )
+
+    html_message = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; color: #222;">
+        <p>Hi {user_name},</p>
+        <p>{lead_text}</p>
+        <p><strong>Plan:</strong> {plan_name}<br />
+           <strong>Renewal date:</strong> {reset_label}</p>
+        <p>
+          <a href="{renew_url}" style="display:inline-block;padding:10px 16px;background:#111827;color:#fff;text-decoration:none;border-radius:6px;">
+            Renew membership
+          </a>
+        </p>
+        <p>If you already renewed, you can ignore this message.</p>
+        <p>The FSXCG Team</p>
+      </body>
+    </html>
+    """
+
+    message = Mail(
+        from_email=_format_from_email(),
+        to_emails=to_email,
+        subject=subject,
+        plain_text_content=plain_message,
+        html_content=html_message,
+    )
+
+    try:
+        response = client.send(message)
+        logger.info(
+            "Sent membership reminder email | membership=%s | type=%s | status=%s",
+            membership.id,
+            reminder_type,
+            getattr(response, "status_code", "?"),
+        )
+        return True
+    except Exception:
+        logger.exception(
+            "Failed to send membership reminder email | membership=%s | type=%s",
+            membership.id,
+            reminder_type,
         )
         return False

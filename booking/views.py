@@ -41,6 +41,13 @@ from .tokens import generate_cancel_token, verify_cancel_token
 logger = logging.getLogger(__name__)
 
 
+def _cancel_existing_active_memberships(user) -> None:
+    UserMembership.objects.filter(
+        user=user,
+        status=UserMembership.STATUS_ACTIVE,
+    ).update(status=UserMembership.STATUS_CANCELLED, updated_at=timezone.now())
+
+
 @extend_schema(
     tags=["Booking"],
     parameters=[
@@ -611,15 +618,16 @@ class StripeWebhookView(APIView):
                 if purchase.status != MembershipPurchase.STATUS_PAID:
                     purchase.status = MembershipPurchase.STATUS_PAID
                     purchase.save(update_fields=["status", "updated_at"])
+                    _cancel_existing_active_memberships(purchase.user)
+                    reset_at = UserMembership.initial_next_reset_at(timezone.now())
                     UserMembership.objects.create(
                         user=purchase.user,
                         plan=purchase.plan,
                         remaining_class_sessions=purchase.plan.included_class_sessions,
                         remaining_events=purchase.plan.included_events,
                         status=UserMembership.STATUS_ACTIVE,
-                        next_reset_at=UserMembership.initial_next_reset_at(
-                            timezone.now()
-                        ),
+                        next_reset_at=reset_at,
+                        expires_at=reset_at,
                     )
                     logger.info(
                         "Marked membership purchase %s as paid and granted membership.",
@@ -805,13 +813,15 @@ class MembershipChangeView(APIView):
 
         # If plan is free, grant immediately
         if plan.price == 0:
+            reset_at = UserMembership.initial_next_reset_at(timezone.now())
             membership_obj = UserMembership.objects.create(
                 user=user,
                 plan=plan,
                 remaining_class_sessions=plan.included_class_sessions,
                 remaining_events=plan.included_events,
                 status=UserMembership.STATUS_ACTIVE,
-                next_reset_at=UserMembership.initial_next_reset_at(timezone.now()),
+                next_reset_at=reset_at,
+                expires_at=reset_at,
             )
             serializer = UserMembershipSerializer(membership_obj)
             return Response(
@@ -931,13 +941,16 @@ class MembershipPurchaseView(APIView):
 
         # Free/zero-priced plan: grant immediately
         if plan.price == 0:
+            _cancel_existing_active_memberships(user)
+            reset_at = UserMembership.initial_next_reset_at(timezone.now())
             membership_obj = UserMembership.objects.create(
                 user=user,
                 plan=plan,
                 remaining_class_sessions=plan.included_class_sessions,
                 remaining_events=plan.included_events,
                 status=UserMembership.STATUS_ACTIVE,
-                next_reset_at=UserMembership.initial_next_reset_at(timezone.now()),
+                next_reset_at=reset_at,
+                expires_at=reset_at,
             )
             serializer = UserMembershipSerializer(membership_obj)
             return Response(
