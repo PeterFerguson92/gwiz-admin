@@ -396,7 +396,7 @@ class UserMembership(models.Model):
         choices=STATUS_CHOICES,
         default=STATUS_ACTIVE,
     )
-    starts_at = models.DateTimeField(auto_now_add=True)
+    starts_at = models.DateTimeField(default=timezone.now)
     expires_at = models.DateTimeField(null=True, blank=True)
     next_reset_at = models.DateTimeField(
         null=True,
