@@ -4,16 +4,13 @@ from django.conf import settings
 from sendgrid.helpers.mail import Mail
 
 from notifications.email import _format_from_email, _get_sendgrid_client
+from services.email.router import send_booking_email_via_provider
 
 logger = logging.getLogger(__name__)
 
 
 def send_booking_confirmation_email(booking, cancel_token: str | None = None) -> bool:
-    client = _get_sendgrid_client()
     template_id = getattr(settings, "SENDGRID_BOOKING_TEMPLATE_ID", "")
-    if client is None or not template_id:
-        logger.error("SendGrid booking template not configured; skipping email.")
-        return False
 
     to_email = booking.guest_email or (
         getattr(booking.user, "email", "") if booking.user else ""
@@ -64,39 +61,75 @@ def send_booking_confirmation_email(booking, cancel_token: str | None = None) ->
         "subject": subject,
     }
 
-    message = Mail(
-        from_email=_format_from_email(),
-        to_emails=to_email,
-        subject=subject,
-    )
-    message.template_id = template_id
-    message.dynamic_template_data = data
-    if message.personalizations:
-        message.personalizations[0].subject = subject
-
     logger.info(
-        "Sending booking email via SendGrid | booking=%s | to=%s | data=%s",
+        "Preparing booking email | booking=%s | to=%s",
         booking.id,
         to_email,
-        data,
     )
 
-    try:
-        response = client.send(message)
+    html_message = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; color: #222;">
+        <p>Booking {status_label}</p>
+        <p><strong>Class:</strong> {fc.name}</p>
+        <p><strong>Date:</strong> {session.date.isoformat()}</p>
+        <p><strong>Time:</strong> {data['start_time']} - {data['end_time']}</p>
+        <p><strong>Payment:</strong> {payment_label}</p>
+        <p><a href="{class_url}">View class details</a></p>
+      </body>
+    </html>
+    """
+    brevo_template_id = getattr(settings, "BREVO_TEMPLATE_ID_BOOKING", 0) or 0
+
+    def _send_via_sendgrid() -> bool:
+        client = _get_sendgrid_client()
+        if client is None or not template_id:
+            logger.error("SendGrid booking template not configured; skipping email.")
+            return False
+
+        message = Mail(
+            from_email=_format_from_email(),
+            to_emails=to_email,
+            subject=subject,
+        )
+        message.template_id = template_id
+        message.dynamic_template_data = data
+        if message.personalizations:
+            message.personalizations[0].subject = subject
+
         logger.info(
-            "Sent booking confirmation email for booking %s to %s (status %s)",
+            "Sending booking email via SendGrid | booking=%s | to=%s | data=%s",
             booking.id,
             to_email,
-            getattr(response, "status_code", "?"),
+            data,
         )
-        return True
-    except Exception:
-        logger.exception(
-            "Failed to send booking confirmation email for booking %s to %s",
-            booking.id,
-            to_email,
-        )
-        return False
+
+        try:
+            response = client.send(message)
+            logger.info(
+                "Sent booking confirmation email for booking %s to %s (status %s)",
+                booking.id,
+                to_email,
+                getattr(response, "status_code", "?"),
+            )
+            return True
+        except Exception:
+            logger.exception(
+                "Failed to send booking confirmation email for booking %s to %s",
+                booking.id,
+                to_email,
+            )
+            return False
+
+    return send_booking_email_via_provider(
+        recipient_email=to_email,
+        subject=subject,
+        html_content=html_message,
+        sendgrid_sender=_send_via_sendgrid,
+        sender_email=_format_from_email(),
+        brevo_template_id=int(brevo_template_id) if brevo_template_id else None,
+        brevo_params=data,
+    )
 
 
 def send_membership_renewal_email(
@@ -105,10 +138,6 @@ def send_membership_renewal_email(
     reminder_type: str,
     renew_url: str,
 ) -> bool:
-    client = _get_sendgrid_client()
-    if client is None:
-        return False
-
     user = membership.user
     to_email = getattr(user, "email", "")
     if not to_email:
@@ -167,27 +196,52 @@ def send_membership_renewal_email(
     </html>
     """
 
-    message = Mail(
-        from_email=_format_from_email(),
-        to_emails=to_email,
-        subject=subject,
-        plain_text_content=plain_message,
-        html_content=html_message,
-    )
+    brevo_template_id = getattr(settings, "BREVO_TEMPLATE_ID_MEMBERSHIP", 0) or 0
+    brevo_params = {
+        "user_name": user_name,
+        "lead_text": lead_text,
+        "plan_name": plan_name,
+        "reset_label": reset_label,
+        "renew_url": renew_url,
+        "subject": subject,
+    }
 
-    try:
-        response = client.send(message)
-        logger.info(
-            "Sent membership reminder email | membership=%s | type=%s | status=%s",
-            membership.id,
-            reminder_type,
-            getattr(response, "status_code", "?"),
+    def _send_via_sendgrid() -> bool:
+        client = _get_sendgrid_client()
+        if client is None:
+            return False
+
+        message = Mail(
+            from_email=_format_from_email(),
+            to_emails=to_email,
+            subject=subject,
+            plain_text_content=plain_message,
+            html_content=html_message,
         )
-        return True
-    except Exception:
-        logger.exception(
-            "Failed to send membership reminder email | membership=%s | type=%s",
-            membership.id,
-            reminder_type,
-        )
-        return False
+
+        try:
+            response = client.send(message)
+            logger.info(
+                "Sent membership reminder email | membership=%s | type=%s | status=%s",
+                membership.id,
+                reminder_type,
+                getattr(response, "status_code", "?"),
+            )
+            return True
+        except Exception:
+            logger.exception(
+                "Failed to send membership reminder email | membership=%s | type=%s",
+                membership.id,
+                reminder_type,
+            )
+            return False
+
+    return send_booking_email_via_provider(
+        recipient_email=to_email,
+        subject=subject,
+        html_content=html_message,
+        sendgrid_sender=_send_via_sendgrid,
+        sender_email=_format_from_email(),
+        brevo_template_id=int(brevo_template_id) if brevo_template_id else None,
+        brevo_params=brevo_params,
+    )
