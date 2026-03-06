@@ -4,6 +4,8 @@ from functools import lru_cache
 
 from django.conf import settings
 
+from services.email.router import send_password_reset_email_via_provider
+
 try:
     from sendgrid import SendGridAPIClient
     from sendgrid.helpers.mail import Mail
@@ -64,10 +66,6 @@ def send_password_reset_email(*, user, reset_url: str) -> bool:
     Sends the password reset email via SendGrid.
     Returns True if the API accepts the email, False otherwise.
     """
-    client = _get_sendgrid_client()
-    if client is None or Mail is None:
-        return False
-
     user_name = user.first_name or user.email
     subject = "Reset your Fsxcg password"
     plain_message = (
@@ -127,29 +125,49 @@ def send_password_reset_email(*, user, reset_url: str) -> bool:
     """
 
     from_email = _format_from_email()
-    logger.info("Sending password reset email via SendGrid as %s", from_email)
+    brevo_template_id = getattr(settings, "BREVO_TEMPLATE_ID_PASSWORD_RESET", 0) or 0
+    brevo_params = {
+        "user_name": user_name,
+        "reset_url": reset_url,
+    }
 
-    message = Mail(
-        from_email=from_email,
-        to_emails=user.email,
+    def _send_via_sendgrid() -> bool:
+        client = _get_sendgrid_client()
+        if client is None or Mail is None:
+            return False
+
+        logger.info("Sending password reset email via SendGrid as %s", from_email)
+        message = Mail(
+            from_email=from_email,
+            to_emails=user.email,
+            subject=subject,
+            plain_text_content=plain_message,
+            html_content=html_message,
+        )
+
+        try:
+            response = client.send(message)
+            logger.info(
+                "SendGrid accepted password reset email for %s (status %s).",
+                user.email,
+                response.status_code,
+            )
+            return True
+        except Exception as exc:
+            error_body = getattr(exc, "body", "")
+            logger.exception(
+                "SendGrid failed to send password reset email to %s. Response: %s",
+                user.email,
+                error_body,
+            )
+            return False
+
+    return send_password_reset_email_via_provider(
+        recipient_email=user.email,
         subject=subject,
-        plain_text_content=plain_message,
         html_content=html_message,
+        sendgrid_sender=_send_via_sendgrid,
+        sender_email=from_email,
+        brevo_template_id=int(brevo_template_id) if brevo_template_id else None,
+        brevo_params=brevo_params,
     )
-
-    try:
-        response = client.send(message)
-        logger.info(
-            "SendGrid accepted password reset email for %s (status %s).",
-            user.email,
-            response.status_code,
-        )
-        return True
-    except Exception as exc:
-        error_body = getattr(exc, "body", "")
-        logger.exception(
-            "SendGrid failed to send password reset email to %s. Response: %s",
-            user.email,
-            error_body,
-        )
-        return False

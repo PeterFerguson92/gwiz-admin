@@ -17,6 +17,7 @@ from sendgrid.helpers.mail import (
 )
 
 from notifications.email import _format_from_email, _get_sendgrid_client
+from services.email.router import send_event_email_via_provider
 
 logger = logging.getLogger(__name__)
 
@@ -104,11 +105,7 @@ def _build_template_data(ticket, to_email: str, status_text: str) -> dict:
 
 
 def send_ticket_confirmation_email(ticket, cancel_token: str | None = None) -> bool:
-    client = _get_sendgrid_client()
     template_id = getattr(settings, "SENDGRID_TICKET_TEMPLATE_ID", "")
-    if client is None or not template_id:
-        logger.error("SendGrid ticket template not configured; skipping email.")
-        return False
 
     user = ticket.user
     to_email = getattr(user, "email", "") or getattr(ticket, "guest_email", "")
@@ -116,15 +113,19 @@ def send_ticket_confirmation_email(ticket, cancel_token: str | None = None) -> b
         logger.warning("Ticket %s has no user email; skipping email send.", ticket.id)
         return False
 
-    pdf_bytes = build_ticket_pdf(ticket)
-    encoded_pdf = base64.b64encode(pdf_bytes).decode()
-    attachment = Attachment(
-        FileContent(encoded_pdf),
-        FileName(f"ticket-{ticket.id}.pdf"),
-        FileType("application/pdf"),
-        Disposition("attachment"),
+    logger.info(
+        "Preparing ticket confirmation email | ticket_id=%s | event_id=%s | to=%s | provider_setting=%s",
+        ticket.id,
+        ticket.event.id,
+        to_email,
+        getattr(
+            settings,
+            "EMAIL_PROVIDER_EVENTS",
+            getattr(settings, "EMAIL_PROVIDER", "sendgrid"),
+        ),
     )
 
+    pdf_bytes = build_ticket_pdf(ticket)
     from_email = _format_from_email()
 
     data = _build_template_data(
@@ -145,41 +146,84 @@ def send_ticket_confirmation_email(ticket, cancel_token: str | None = None) -> b
     subject = (
         data.get("subject") or f"FSXCG | Event {ticket.status} | {ticket.event.name}"
     )
-    message = Mail(
-        from_email=from_email,
-        to_emails=to_email,
-        subject=subject,
+    html_message = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; color: #222;">
+        <p>Your ticket for <strong>{ticket.event.name}</strong> is confirmed.</p>
+        <p><strong>Starts:</strong> {data['starts_at']}</p>
+        <p><strong>Location:</strong> {data['location']}</p>
+      </body>
+    </html>
+    """
+    brevo_template_id = getattr(settings, "BREVO_TEMPLATE_ID_EVENTS", 0) or 0
+    logger.info(
+        "Ticket confirmation payload ready | ticket_id=%s | sendgrid_template=%s | brevo_template=%s | pdf_bytes=%s",
+        ticket.id,
+        bool(template_id),
+        brevo_template_id or None,
+        len(pdf_bytes),
     )
-    message.template_id = template_id
-    message.dynamic_template_data = data
-    # Ensure subject is set even with dynamic templates
-    if message.personalizations:
-        message.personalizations[0].subject = subject
-    message.attachment = attachment
-    try:
-        response = client.send(message)
-        logger.info(
-            "Sent ticket confirmation email for ticket %s to %s (status %s)",
-            ticket.id,
-            to_email,
-            getattr(response, "status_code", "?"),
+
+    def _send_via_sendgrid() -> bool:
+        client = _get_sendgrid_client()
+        if client is None or not template_id:
+            logger.error("SendGrid ticket template not configured; skipping email.")
+            return False
+
+        encoded_pdf = base64.b64encode(pdf_bytes).decode()
+        attachment = Attachment(
+            FileContent(encoded_pdf),
+            FileName(f"ticket-{ticket.id}.pdf"),
+            FileType("application/pdf"),
+            Disposition("attachment"),
         )
-        return True
-    except Exception:
-        logger.exception(
-            "Failed to send ticket confirmation email for ticket %s to %s",
-            ticket.id,
-            to_email,
+
+        message = Mail(
+            from_email=from_email,
+            to_emails=to_email,
+            subject=subject,
         )
-        return False
+        message.template_id = template_id
+        message.dynamic_template_data = data
+        if message.personalizations:
+            message.personalizations[0].subject = subject
+        message.attachment = attachment
+        try:
+            response = client.send(message)
+            logger.info(
+                "Sent ticket confirmation email for ticket %s to %s (status %s)",
+                ticket.id,
+                to_email,
+                getattr(response, "status_code", "?"),
+            )
+            return True
+        except Exception:
+            logger.exception(
+                "Failed to send ticket confirmation email for ticket %s to %s",
+                ticket.id,
+                to_email,
+            )
+            return False
+
+    return send_event_email_via_provider(
+        recipient_email=to_email,
+        subject=subject,
+        html_content=html_message,
+        sendgrid_sender=_send_via_sendgrid,
+        sender_email=from_email,
+        brevo_template_id=int(brevo_template_id) if brevo_template_id else None,
+        brevo_params=data,
+        attachments=[
+            {
+                "name": f"ticket-{ticket.id}.pdf",
+                "content": pdf_bytes,
+            }
+        ],
+    )
 
 
 def send_ticket_cancellation_email(ticket) -> bool:
-    client = _get_sendgrid_client()
     template_id = getattr(settings, "SENDGRID_TICKET_TEMPLATE_ID", "")
-    if client is None or not template_id:
-        logger.error("SendGrid ticket template not configured; skipping email.")
-        return False
 
     user = ticket.user
     to_email = getattr(user, "email", "") or getattr(ticket, "guest_email", "")
@@ -188,6 +232,18 @@ def send_ticket_cancellation_email(ticket) -> bool:
             "Ticket %s has no user email; skipping cancellation email.", ticket.id
         )
         return False
+
+    logger.info(
+        "Preparing ticket cancellation email | ticket_id=%s | event_id=%s | to=%s | provider_setting=%s",
+        ticket.id,
+        ticket.event.id,
+        to_email,
+        getattr(
+            settings,
+            "EMAIL_PROVIDER_EVENTS",
+            getattr(settings, "EMAIL_PROVIDER", "sendgrid"),
+        ),
+    )
 
     from_email = _format_from_email()
 
@@ -199,29 +255,61 @@ def send_ticket_cancellation_email(ticket) -> bool:
     subject = (
         data.get("subject") or f"FSXCG | Event {ticket.status} | {ticket.event.name}"
     )
-    message = Mail(
-        from_email=from_email,
-        to_emails=to_email,
-        subject=subject,
+    html_message = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; color: #222;">
+        <p>Your ticket for <strong>{ticket.event.name}</strong> was cancelled.</p>
+        <p><strong>Ticket ID:</strong> {ticket.id}</p>
+      </body>
+    </html>
+    """
+    brevo_template_id = getattr(settings, "BREVO_TEMPLATE_ID_EVENTS", 0) or 0
+    logger.info(
+        "Ticket cancellation payload ready | ticket_id=%s | sendgrid_template=%s | brevo_template=%s",
+        ticket.id,
+        bool(template_id),
+        brevo_template_id or None,
     )
-    message.template_id = template_id
-    message.dynamic_template_data = data
-    if message.personalizations:
-        message.personalizations[0].subject = subject
 
-    try:
-        response = client.send(message)
-        logger.info(
-            "Sent ticket cancellation email for ticket %s to %s (status %s)",
-            ticket.id,
-            to_email,
-            getattr(response, "status_code", "?"),
+    def _send_via_sendgrid() -> bool:
+        client = _get_sendgrid_client()
+        if client is None or not template_id:
+            logger.error("SendGrid ticket template not configured; skipping email.")
+            return False
+
+        message = Mail(
+            from_email=from_email,
+            to_emails=to_email,
+            subject=subject,
         )
-        return True
-    except Exception:
-        logger.exception(
-            "Failed to send ticket cancellation email for ticket %s to %s",
-            ticket.id,
-            to_email,
-        )
-        return False
+        message.template_id = template_id
+        message.dynamic_template_data = data
+        if message.personalizations:
+            message.personalizations[0].subject = subject
+
+        try:
+            response = client.send(message)
+            logger.info(
+                "Sent ticket cancellation email for ticket %s to %s (status %s)",
+                ticket.id,
+                to_email,
+                getattr(response, "status_code", "?"),
+            )
+            return True
+        except Exception:
+            logger.exception(
+                "Failed to send ticket cancellation email for ticket %s to %s",
+                ticket.id,
+                to_email,
+            )
+            return False
+
+    return send_event_email_via_provider(
+        recipient_email=to_email,
+        subject=subject,
+        html_content=html_message,
+        sendgrid_sender=_send_via_sendgrid,
+        sender_email=from_email,
+        brevo_template_id=int(brevo_template_id) if brevo_template_id else None,
+        brevo_params=data,
+    )

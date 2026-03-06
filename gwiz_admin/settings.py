@@ -158,6 +158,7 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
 
 ADMIN_STATIC_BASE = f"{STATIC_URL}admin/"
 PUBLIC_SITE_URL = env("PUBLIC_SITE_URL", default="/")
+MEMBERSHIP_RENEW_URL = env("MEMBERSHIP_RENEW_URL", default="")
 API_REFERENCE_URL = env("API_REFERENCE_URL", default="https://gwiz.fit/docs")
 ADMIN_SITE_ICON = env("ADMIN_SITE_ICON", default=f"{ADMIN_STATIC_BASE}brand/icon.svg")
 ADMIN_SITE_FAVICON = env("ADMIN_SITE_FAVICON", default=ADMIN_SITE_ICON)
@@ -484,6 +485,41 @@ EMAIL_HOST_PASSWORD = os.environ.get("SENDGRID_API_KEY")
 SENDGRID_API_KEY = env(
     "SENDGRID_API_KEY", default=os.environ.get("SENDGRID_API_KEY", "")
 )
+BREVO_API_KEY = env("BREVO_API_KEY", default=os.environ.get("BREVO_API_KEY", ""))
+EMAIL_PROVIDER = env(
+    "EMAIL_PROVIDER", default=os.environ.get("EMAIL_PROVIDER", "sendgrid")
+)
+EMAIL_PROVIDER_PASSWORD_RESET = env(
+    "EMAIL_PROVIDER_PASSWORD_RESET",
+    default=os.environ.get("EMAIL_PROVIDER_PASSWORD_RESET", EMAIL_PROVIDER),
+)
+EMAIL_PROVIDER_BOOKING = env(
+    "EMAIL_PROVIDER_BOOKING",
+    default=os.environ.get("EMAIL_PROVIDER_BOOKING", EMAIL_PROVIDER),
+)
+EMAIL_PROVIDER_EVENTS = env(
+    "EMAIL_PROVIDER_EVENTS",
+    default=os.environ.get("EMAIL_PROVIDER_EVENTS", EMAIL_PROVIDER),
+)
+BREVO_TEMPLATE_ID_PASSWORD_RESET = env.int(
+    "BREVO_TEMPLATE_ID_PASSWORD_RESET",
+    default=int(os.environ.get("BREVO_TEMPLATE_ID_PASSWORD_RESET", "0") or 0),
+)
+BREVO_TEMPLATE_ID_BOOKING = env.int(
+    "BREVO_TEMPLATE_ID_BOOKING",
+    default=int(os.environ.get("BREVO_TEMPLATE_ID_BOOKING", "0") or 0),
+)
+BREVO_TEMPLATE_ID_MEMBERSHIP = env.int(
+    "BREVO_TEMPLATE_ID_MEMBERSHIP",
+    default=int(os.environ.get("BREVO_TEMPLATE_ID_MEMBERSHIP", "0") or 0),
+)
+BREVO_TEMPLATE_ID_EVENTS = env.int(
+    "BREVO_TEMPLATE_ID_EVENTS",
+    default=int(os.environ.get("BREVO_TEMPLATE_ID_EVENTS", "0") or 0),
+)
+# Brevo per-flow example:
+# export BREVO_API_KEY=...
+# export EMAIL_PROVIDER_EVENTS=brevo
 DEFAULT_FROM_EMAIL = env(
     "DEFAULT_FROM_EMAIL",
     default=os.environ.get("DEFAULT_FROM_EMAIL", "webmaster@localhost"),

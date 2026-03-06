@@ -18,6 +18,7 @@ from .models import (
     FitnessClass,
     MembershipPlan,
     MembershipPurchase,
+    MembershipReminderLog,
     MembershipUsage,
     RecurrenceRule,
     UserMembership,
@@ -307,11 +308,12 @@ class UserMembershipAdmin(ModelAdmin):
         "remaining_events",
         "starts_at",
         "expires_at",
+        "next_reset_at",
     )
     list_filter = ("status", "plan")
     search_fields = ("user__email", "user__first_name", "user__last_name", "plan__name")
     autocomplete_fields = ("user", "plan")
-    readonly_fields = ("starts_at", "created_at", "updated_at")
+    readonly_fields = ("next_reset_at", "created_at", "updated_at")
     fieldsets = (
         (
             "Membership",
@@ -331,7 +333,7 @@ class UserMembershipAdmin(ModelAdmin):
             "Dates",
             {
                 "classes": ("gwiz-card", "gwiz-grid"),
-                "fields": ("expires_at",),
+                "fields": ("starts_at", "expires_at", "next_reset_at"),
             },
         ),
         (
@@ -372,6 +374,21 @@ class MembershipPurchaseAdmin(ModelAdmin):
     list_filter = ("status", "plan")
     search_fields = ("user__email", "plan__name", "stripe_payment_intent_id")
     readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(MembershipReminderLog)
+class MembershipReminderLogAdmin(ModelAdmin):
+    list_display = (
+        "membership",
+        "reminder_type",
+        "cycle_reset_at",
+        "email_sent",
+        "whatsapp_sent",
+        "sent_at",
+    )
+    list_filter = ("reminder_type", "email_sent", "whatsapp_sent")
+    search_fields = ("membership__user__email", "membership__plan__name")
+    readonly_fields = ("sent_at",)
 
 
 # ---------- ClassSession ---------- #

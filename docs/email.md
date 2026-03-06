@@ -28,3 +28,32 @@ Then trigger `PasswordResetRequestView` via the API or call
 log to confirm the email was accepted. Any failures are logged via the
 `notifications.email` logger, so run the server with `DEBUG=True` to see them on
 stdout.
+
+## Brevo per-flow overrides (optional)
+
+Brevo REST support is additive and SendGrid remains the default provider.
+
+```bash
+export BREVO_API_KEY=your_brevo_api_key
+export EMAIL_PROVIDER=sendgrid
+export EMAIL_PROVIDER_EVENTS=brevo
+# optional:
+# export EMAIL_PROVIDER_PASSWORD_RESET=brevo
+# export EMAIL_PROVIDER_BOOKING=brevo
+```
+
+### Brevo template IDs
+
+```bash
+export BREVO_TEMPLATE_ID_PASSWORD_RESET=111
+export BREVO_TEMPLATE_ID_BOOKING=222
+export BREVO_TEMPLATE_ID_MEMBERSHIP=333
+export BREVO_TEMPLATE_ID_EVENTS=444
+```
+
+### Brevo template params expected by flow
+
+- `password reset`: `user_name`, `reset_url`
+- `booking confirmation`: `class_name`, `class_id`, `session_date`, `start_time`, `end_time`, `booking_id`, `status`, `payment_status`, `cancel_url`, `class_url`, `logo_url`, `header_banner_url`, `subject`
+- `membership reminder`: `user_name`, `lead_text`, `plan_name`, `reset_label`, `renew_url`, `subject`
+- `events`: `event_name`, `location`, `starts_at`, `ends_at`, `quantity`, `ticket_id`, `event_id`, `user_email`, `status`, `payment_status`, `logo_url`, `header_banner_url`, `subject`, optional `cancel_url`

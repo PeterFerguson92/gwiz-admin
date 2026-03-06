@@ -1,4 +1,5 @@
 import uuid
+from calendar import monthrange
 
 from django.db import models
 from django.db.models import Q  # make sure this import exists at the top
@@ -395,8 +396,13 @@ class UserMembership(models.Model):
         choices=STATUS_CHOICES,
         default=STATUS_ACTIVE,
     )
-    starts_at = models.DateTimeField(auto_now_add=True)
+    starts_at = models.DateTimeField(default=timezone.now)
     expires_at = models.DateTimeField(null=True, blank=True)
+    next_reset_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When monthly credits should next reset.",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -406,6 +412,35 @@ class UserMembership(models.Model):
 
     def __str__(self):
         return f"{self.user} – {self.plan.name} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        """
+        Keep next_reset_at aligned with expires_at when expires_at is set.
+        """
+        update_fields = kwargs.get("update_fields")
+        if self.expires_at and self.next_reset_at != self.expires_at:
+            self.next_reset_at = self.expires_at
+            if update_fields is not None:
+                update_fields = set(update_fields)
+                update_fields.add("next_reset_at")
+                kwargs["update_fields"] = list(update_fields)
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def add_calendar_month(value):
+        """
+        Return the same timestamp in the next calendar month, clamping
+        the day if the next month has fewer days.
+        """
+        year = value.year + (value.month // 12)
+        month = 1 if value.month == 12 else value.month + 1
+        day = min(value.day, monthrange(year, month)[1])
+        return value.replace(year=year, month=month, day=day)
+
+    @classmethod
+    def initial_next_reset_at(cls, starts_at=None):
+        start = starts_at or timezone.now()
+        return cls.add_calendar_month(start)
 
     @property
     def is_active_membership(self) -> bool:
@@ -445,6 +480,45 @@ class MembershipUsage(models.Model):
 
     def __str__(self):
         return f"{self.kind} usage ({self.amount}) for {self.membership}"
+
+
+class MembershipReminderLog(models.Model):
+    TYPE_RENEW_7_DAYS = "renew_7_days"
+    TYPE_RENEW_3_DAYS = "renew_3_days"
+    TYPE_RENEW_1_DAY = "renew_1_day"
+    TYPE_EXPIRED = "expired"
+    TYPE_CHOICES = [
+        (TYPE_RENEW_7_DAYS, "Renewal reminder (7 days)"),
+        (TYPE_RENEW_3_DAYS, "Renewal reminder (3 days)"),
+        (TYPE_RENEW_1_DAY, "Renewal reminder (1 day)"),
+        (TYPE_EXPIRED, "Membership expired"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    membership = models.ForeignKey(
+        UserMembership,
+        related_name="reminder_logs",
+        on_delete=models.CASCADE,
+    )
+    reminder_type = models.CharField(max_length=30, choices=TYPE_CHOICES)
+    cycle_reset_at = models.DateTimeField(
+        help_text="The reset/expiry boundary this reminder belongs to.",
+    )
+    email_sent = models.BooleanField(default=False)
+    whatsapp_sent = models.BooleanField(default=False)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-sent_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["membership", "reminder_type", "cycle_reset_at"],
+                name="unique_membership_reminder_per_cycle",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.reminder_type} for {self.membership}"
 
 
 class MembershipPurchase(models.Model):
