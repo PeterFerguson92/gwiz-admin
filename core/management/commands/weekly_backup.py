@@ -1,3 +1,4 @@
+import os
 import subprocess
 from datetime import timezone as dt_timezone
 
@@ -7,6 +8,8 @@ from django.utils import timezone
 
 class Command(BaseCommand):
     help = "Capture a Heroku Postgres backup weekly on Sunday at 21:00 UTC."
+    DEFAULT_APP_NAME = "gwiz-admin"
+    APP_NAME_ENV_VAR = "HEROKU_APP_NAME"
 
     def handle(self, *args, **options):
         now_utc = timezone.now().astimezone(dt_timezone.utc)
@@ -22,7 +25,8 @@ class Command(BaseCommand):
             )
             return
 
-        command = ["heroku", "pg:backups:capture", "--app", "gwiz-admin"]
+        app_name = os.getenv(self.APP_NAME_ENV_VAR, self.DEFAULT_APP_NAME)
+        command = ["heroku", "pg:backups:capture", "--app", app_name]
         self.stdout.write(
             self.style.NOTICE(
                 f"Running weekly backup at {now_utc.isoformat()}: {' '.join(command)}"
