@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "accounts",
     "booking",
     "events",
+    "core",
     "drf_spectacular",
     "drf_spectacular_sidecar",
 ]
