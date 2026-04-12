@@ -11,10 +11,17 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound
 from rest_framework.generics import RetrieveAPIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from attendance.services import (
+    AlreadyCheckedIn,
+    CheckInNotAllowed,
+    NotCheckedIn,
+    check_in_booking,
+    revert_booking_check_in,
+)
 from booking.email_utils import send_booking_confirmation_email
 from booking.serializer import (
     BookingSerializer,
@@ -39,6 +46,23 @@ from .models import (
 from .tokens import generate_cancel_token, verify_cancel_token
 
 logger = logging.getLogger(__name__)
+
+
+def _attendance_payload(request):
+    return {
+        "source": request.data.get("source") or "manual",
+        "notes": request.data.get("notes") or "",
+    }
+
+
+def _attendance_error_response(exc):
+    if isinstance(exc, AlreadyCheckedIn):
+        return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+    if isinstance(exc, NotCheckedIn):
+        return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    if isinstance(exc, CheckInNotAllowed):
+        return Response({"detail": str(exc)}, status=status.HTTP_403_FORBIDDEN)
+    return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 def _cancel_existing_active_memberships(user) -> None:
@@ -532,6 +556,52 @@ class MyBookingsListView(generics.ListAPIView):
             qs = qs.filter(class_session__date__gte=today)
 
         return qs
+
+
+class BookingCheckInView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, booking_id):
+        booking = Booking.objects.filter(pk=booking_id).first()
+        if not booking:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            check_in_booking(
+                booking,
+                actor=request.user,
+                **_attendance_payload(request),
+            )
+        except (AlreadyCheckedIn, CheckInNotAllowed, NotCheckedIn) as exc:
+            return _attendance_error_response(exc)
+
+        return Response(
+            {"id": str(booking.id), "checked_in_at": booking.checked_in_at},
+            status=status.HTTP_200_OK,
+        )
+
+
+class BookingRevertCheckInView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, booking_id):
+        booking = Booking.objects.filter(pk=booking_id).first()
+        if not booking:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            revert_booking_check_in(
+                booking,
+                actor=request.user,
+                **_attendance_payload(request),
+            )
+        except (AlreadyCheckedIn, CheckInNotAllowed, NotCheckedIn) as exc:
+            return _attendance_error_response(exc)
+
+        return Response(
+            {"id": str(booking.id), "checked_in_at": None},
+            status=status.HTTP_200_OK,
+        )
 
 
 @extend_schema(

@@ -9,10 +9,17 @@ from django.db.models import Q
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import generics, status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from attendance.services import (
+    AlreadyCheckedIn,
+    CheckInNotAllowed,
+    NotCheckedIn,
+    check_in_ticket,
+    revert_ticket_check_in,
+)
 from booking import membership
 from booking.tokens import generate_cancel_token, verify_cancel_token
 
@@ -26,6 +33,23 @@ from .serializer import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _attendance_payload(request):
+    return {
+        "source": request.data.get("source") or "manual",
+        "notes": request.data.get("notes") or "",
+    }
+
+
+def _attendance_error_response(exc):
+    if isinstance(exc, AlreadyCheckedIn):
+        return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+    if isinstance(exc, NotCheckedIn):
+        return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    if isinstance(exc, CheckInNotAllowed):
+        return Response({"detail": str(exc)}, status=status.HTTP_403_FORBIDDEN)
+    return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UpcomingEventListView(generics.ListAPIView):
@@ -311,6 +335,48 @@ class CancelTicketView(APIView):
         data = serializer.data
         data["cancellation_email_sent"] = cancel_email_sent
         return Response(data, status=status.HTTP_200_OK)
+
+
+class TicketCheckInView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, ticket_id):
+        ticket = EventTicket.objects.filter(id=ticket_id).first()
+        if not ticket:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            check_in_ticket(ticket, actor=request.user, **_attendance_payload(request))
+        except (AlreadyCheckedIn, CheckInNotAllowed, NotCheckedIn) as exc:
+            return _attendance_error_response(exc)
+
+        return Response(
+            {"id": str(ticket.id), "checked_in_at": ticket.checked_in_at},
+            status=status.HTTP_200_OK,
+        )
+
+
+class TicketRevertCheckInView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, ticket_id):
+        ticket = EventTicket.objects.filter(id=ticket_id).first()
+        if not ticket:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            revert_ticket_check_in(
+                ticket,
+                actor=request.user,
+                **_attendance_payload(request),
+            )
+        except (AlreadyCheckedIn, CheckInNotAllowed, NotCheckedIn) as exc:
+            return _attendance_error_response(exc)
+
+        return Response(
+            {"id": str(ticket.id), "checked_in_at": None},
+            status=status.HTTP_200_OK,
+        )
 
 
 @extend_schema(

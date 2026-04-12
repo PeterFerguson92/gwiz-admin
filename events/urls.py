@@ -7,6 +7,8 @@ from .views import (
     MyTicketsListView,
     PurchaseTicketView,
     StripeWebhookView,
+    TicketCheckInView,
+    TicketRevertCheckInView,
     UpcomingEventListView,
 )
 
@@ -24,6 +26,16 @@ urlpatterns = [
         "tickets/<uuid:ticket_id>/cancel/",
         CancelTicketView.as_view(),
         name="cancel-event-ticket",
+    ),
+    path(
+        "tickets/<uuid:ticket_id>/check-in/",
+        TicketCheckInView.as_view(),
+        name="event-ticket-check-in",
+    ),
+    path(
+        "tickets/<uuid:ticket_id>/revert-check-in/",
+        TicketRevertCheckInView.as_view(),
+        name="event-ticket-revert-check-in",
     ),
     path("stripe/webhook/", StripeWebhookView.as_view(), name="event-stripe-webhook"),
 ]
