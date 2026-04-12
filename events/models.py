@@ -162,6 +162,17 @@ class EventTicket(models.Model):
         null=True,
         help_text="Stripe PaymentIntent ID for paid tickets.",
     )
+    checked_in_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    checked_in_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="checked_in_event_tickets",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     quantity = models.PositiveIntegerField(
         default=1,
         validators=[MinValueValidator(1)],

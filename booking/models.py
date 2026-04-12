@@ -288,6 +288,17 @@ class Booking(models.Model):
         choices=ATTENDANCE_CHOICES,
         default=ATTENDANCE_UNKNOWN,
     )
+    checked_in_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    checked_in_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="checked_in_bookings",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
