@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     ActiveFitnessClassListView,
     AllUpcomingSessionsView,
+    BookingAttendanceSearchView,
     BookingCheckInView,
     BookingRevertCheckInView,
     BookSessionView,
@@ -17,6 +18,7 @@ from .views import (
     MembershipPurchaseView,
     MyBookingsListView,
     MyMembershipView,
+    SessionAttendeeListView,
     StripeWebhookView,
     UpcomingClassSessionListView,
 )
@@ -59,6 +61,11 @@ urlpatterns = [
         name="book-session",
     ),
     path(
+        "sessions/<uuid:session_id>/attendees/",
+        SessionAttendeeListView.as_view(),
+        name="session-attendees",
+    ),
+    path(
         "bookings/<uuid:booking_id>/cancel/",
         CancelBookingView.as_view(),
         name="cancel-booking",
@@ -72,6 +79,11 @@ urlpatterns = [
         "bookings/<uuid:booking_id>/revert-check-in/",
         BookingRevertCheckInView.as_view(),
         name="booking-revert-check-in",
+    ),
+    path(
+        "bookings/search/",
+        BookingAttendanceSearchView.as_view(),
+        name="booking-search",
     ),
     path(
         "my-bookings/",

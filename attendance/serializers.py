@@ -1,0 +1,42 @@
+from rest_framework import serializers
+
+from booking.models import Booking
+from events.models import EventTicket
+
+
+class TicketAttendanceSerializer(serializers.ModelSerializer):
+    user_email = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EventTicket
+        fields = [
+            "id",
+            "user_email",
+            "status",
+            "payment_status",
+            "checked_in_at",
+        ]
+
+    def get_user_email(self, obj):
+        if obj.user_id:
+            return getattr(obj.user, "email", "")
+        return obj.guest_email
+
+
+class BookingAttendanceSerializer(serializers.ModelSerializer):
+    user_email = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Booking
+        fields = [
+            "id",
+            "user_email",
+            "status",
+            "payment_status",
+            "checked_in_at",
+        ]
+
+    def get_user_email(self, obj):
+        if obj.user_id:
+            return getattr(obj.user, "email", "")
+        return obj.guest_email

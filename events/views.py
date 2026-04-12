@@ -1,5 +1,6 @@
 import datetime
 import logging
+import uuid
 
 import stripe
 from django.conf import settings
@@ -13,6 +14,8 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from attendance.pagination import AttendancePagination
+from attendance.serializers import TicketAttendanceSerializer
 from attendance.services import (
     AlreadyCheckedIn,
     CheckInNotAllowed,
@@ -377,6 +380,43 @@ class TicketRevertCheckInView(APIView):
             {"id": str(ticket.id), "checked_in_at": None},
             status=status.HTTP_200_OK,
         )
+
+
+class EventAttendeeListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = TicketAttendanceSerializer
+    pagination_class = AttendancePagination
+
+    def get_queryset(self):
+        return (
+            EventTicket.objects.filter(event_id=self.kwargs["event_id"])
+            .select_related("user")
+            .order_by("-created_at")
+        )
+
+
+class TicketAttendanceSearchView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = TicketAttendanceSerializer
+    pagination_class = AttendancePagination
+
+    def get_queryset(self):
+        q = (self.request.query_params.get("q") or "").strip()
+        if not q:
+            return EventTicket.objects.none()
+
+        queryset = EventTicket.objects.select_related("user").order_by("-created_at")
+        filters = Q(user__email__icontains=q) | Q(guest_email__icontains=q)
+
+        try:
+            ticket_id = uuid.UUID(q)
+        except ValueError:
+            ticket_id = None
+
+        if ticket_id is not None:
+            filters |= Q(id=ticket_id)
+
+        return queryset.filter(filters)
 
 
 @extend_schema(

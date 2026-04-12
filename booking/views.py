@@ -1,5 +1,6 @@
 import datetime
 import logging
+import uuid
 
 import stripe
 from django.conf import settings
@@ -15,6 +16,8 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from attendance.pagination import AttendancePagination
+from attendance.serializers import BookingAttendanceSerializer
 from attendance.services import (
     AlreadyCheckedIn,
     CheckInNotAllowed,
@@ -602,6 +605,43 @@ class BookingRevertCheckInView(APIView):
             {"id": str(booking.id), "checked_in_at": None},
             status=status.HTTP_200_OK,
         )
+
+
+class SessionAttendeeListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = BookingAttendanceSerializer
+    pagination_class = AttendancePagination
+
+    def get_queryset(self):
+        return (
+            Booking.objects.filter(class_session_id=self.kwargs["session_id"])
+            .select_related("user")
+            .order_by("-created_at")
+        )
+
+
+class BookingAttendanceSearchView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class = BookingAttendanceSerializer
+    pagination_class = AttendancePagination
+
+    def get_queryset(self):
+        q = (self.request.query_params.get("q") or "").strip()
+        if not q:
+            return Booking.objects.none()
+
+        queryset = Booking.objects.select_related("user").order_by("-created_at")
+        filters = Q(user__email__icontains=q) | Q(guest_email__icontains=q)
+
+        try:
+            booking_id = uuid.UUID(q)
+        except ValueError:
+            booking_id = None
+
+        if booking_id is not None:
+            filters |= Q(id=booking_id)
+
+        return queryset.filter(filters)
 
 
 @extend_schema(
