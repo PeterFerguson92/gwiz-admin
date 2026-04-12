@@ -189,6 +189,7 @@ class EmailTokenObtainSerializer(TokenObtainPairSerializer):
                 "full_name": user.full_name,
                 "avatar_url": user.avatar_url,
                 "phone_number": user.phone_number,
+                "is_staff": user.is_staff,
                 "is_social_login": user.is_social_login,
                 "provider": user.provider,
             },
@@ -287,6 +288,7 @@ class GoogleLoginSerializer(serializers.Serializer):
                 "full_name": user.full_name,
                 "avatar_url": user.avatar_url,
                 "phone_number": user.phone_number,
+                "is_staff": user.is_staff,
                 "is_social_login": user.is_social_login,
                 "provider": user.provider,
             },
@@ -312,6 +314,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "surname",
             "phone_number",
             "avatar_url",
+            "is_staff",
             "is_social_login",
             "provider",
         ]
@@ -320,6 +323,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "username",
             "full_name",
             "avatar_url",
+            "is_staff",
             "is_social_login",
             "provider",
         ]
@@ -560,6 +564,7 @@ class UserReadSerializer(serializers.ModelSerializer):
             "full_name",
             "avatar_url",
             "phone_number",
+            "is_staff",
             "is_social_login",
             "provider",
         ]
