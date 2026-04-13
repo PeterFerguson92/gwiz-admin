@@ -54,6 +54,16 @@ class AttendanceBaseTestCase(TestCase):
             capacity=50,
             is_active=True,
         )
+        self.other_event = Event.objects.create(
+            name="Breathwork Lab",
+            description="Another event",
+            location="Studio B",
+            start_datetime=timezone.now() + datetime.timedelta(days=4),
+            end_datetime=timezone.now() + datetime.timedelta(days=4, hours=1),
+            ticket_price=Decimal("20.00"),
+            capacity=30,
+            is_active=True,
+        )
         self.fitness_class = FitnessClass.objects.create(
             name="Yoga Flow",
             description="Class description",
@@ -69,6 +79,21 @@ class AttendanceBaseTestCase(TestCase):
             end_time=datetime.time(11, 0),
             status="scheduled",
         )
+        self.other_fitness_class = FitnessClass.objects.create(
+            name="Pilates Core",
+            description="Other class description",
+            genre="pilates",
+            base_price=Decimal("14.00"),
+            capacity=18,
+            is_active=True,
+        )
+        self.other_class_session = ClassSession.objects.create(
+            fitness_class=self.other_fitness_class,
+            date=datetime.date.today() + datetime.timedelta(days=3),
+            start_time=datetime.time(12, 0),
+            end_time=datetime.time(13, 0),
+            status="scheduled",
+        )
 
     def create_ticket(
         self,
@@ -78,9 +103,10 @@ class AttendanceBaseTestCase(TestCase):
         status_value=EventTicket.STATUS_CONFIRMED,
         payment_status=EventTicket.PAYMENT_PAID,
         checked_in_at=None,
+        event=None,
     ):
         return EventTicket.objects.create(
-            event=self.event,
+            event=event or self.event,
             user=user,
             is_guest_purchase=user is None,
             guest_email=guest_email,
@@ -99,9 +125,10 @@ class AttendanceBaseTestCase(TestCase):
         status_value=Booking.STATUS_BOOKED,
         payment_status=Booking.PAYMENT_PAID,
         checked_in_at=None,
+        class_session=None,
     ):
         return Booking.objects.create(
-            class_session=self.class_session,
+            class_session=class_session or self.class_session,
             user=user,
             is_guest_purchase=user is None,
             guest_email=guest_email,
@@ -414,6 +441,24 @@ class AttendanceReadEndpointTests(AttendanceBaseTestCase):
         self.assertEqual(uuid_response.data["count"], 1)
         self.assertEqual(uuid_response.data["results"][0]["id"], str(member_ticket.id))
 
+    def test_event_scoped_ticket_search_only_returns_tickets_for_current_event(self):
+        matching_ticket = self.create_ticket(user=self.member_user)
+        self.create_ticket(
+            user=None,
+            guest_email=self.member_user.email,
+            event=self.other_event,
+        )
+        self.authenticate_staff()
+
+        response = self.api_client.get(
+            f"/api/events/{self.event.id}/tickets/search/",
+            {"q": self.member_user.email},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], str(matching_ticket.id))
+
     def test_booking_search_supports_member_email_guest_email_and_exact_uuid(self):
         member_booking = self.create_booking(user=self.member_user)
         guest_booking = self.create_booking(
@@ -442,3 +487,23 @@ class AttendanceReadEndpointTests(AttendanceBaseTestCase):
         self.assertEqual(guest_response.data["results"][0]["id"], str(guest_booking.id))
         self.assertEqual(uuid_response.data["count"], 1)
         self.assertEqual(uuid_response.data["results"][0]["id"], str(guest_booking.id))
+
+    def test_session_scoped_booking_search_only_returns_bookings_for_current_session(
+        self,
+    ):
+        matching_booking = self.create_booking(user=self.member_user)
+        self.create_booking(
+            user=None,
+            guest_email=self.member_user.email,
+            class_session=self.other_class_session,
+        )
+        self.authenticate_staff()
+
+        response = self.api_client.get(
+            f"/api/booking/sessions/{self.class_session.id}/bookings/search/",
+            {"q": self.member_user.email},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], str(matching_booking.id))

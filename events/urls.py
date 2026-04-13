@@ -49,5 +49,10 @@ urlpatterns = [
         TicketAttendanceSearchView.as_view(),
         name="event-ticket-search",
     ),
+    path(
+        "<uuid:event_id>/tickets/search/",
+        TicketAttendanceSearchView.as_view(),
+        name="event-ticket-search-scoped",
+    ),
     path("stripe/webhook/", StripeWebhookView.as_view(), name="event-stripe-webhook"),
 ]

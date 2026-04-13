@@ -406,6 +406,9 @@ class TicketAttendanceSearchView(generics.ListAPIView):
             return EventTicket.objects.none()
 
         queryset = EventTicket.objects.select_related("user").order_by("-created_at")
+        event_id = self.kwargs.get("event_id")
+        if event_id:
+            queryset = queryset.filter(event_id=event_id)
         filters = Q(user__email__icontains=q) | Q(guest_email__icontains=q)
 
         try:

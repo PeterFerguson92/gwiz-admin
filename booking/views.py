@@ -631,6 +631,9 @@ class BookingAttendanceSearchView(generics.ListAPIView):
             return Booking.objects.none()
 
         queryset = Booking.objects.select_related("user").order_by("-created_at")
+        session_id = self.kwargs.get("session_id")
+        if session_id:
+            queryset = queryset.filter(class_session_id=session_id)
         filters = Q(user__email__icontains=q) | Q(guest_email__icontains=q)
 
         try:

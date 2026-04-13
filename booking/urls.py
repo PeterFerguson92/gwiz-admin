@@ -86,6 +86,11 @@ urlpatterns = [
         name="booking-search",
     ),
     path(
+        "sessions/<uuid:session_id>/bookings/search/",
+        BookingAttendanceSearchView.as_view(),
+        name="booking-search-scoped",
+    ),
+    path(
         "my-bookings/",
         MyBookingsListView.as_view(),
         name="my-bookings",
