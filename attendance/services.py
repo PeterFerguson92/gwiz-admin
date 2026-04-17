@@ -63,6 +63,31 @@ def resolve_check_in_token(raw_token: str) -> ResolvedCheckInToken:
     raise CheckInTokenNotFound("Check-in token not found.")
 
 
+def check_in_by_token(
+    raw_token: str, *, actor: User | None, source: str = "manual", notes: str = ""
+) -> ResolvedCheckInToken:
+    resolved = resolve_check_in_token(raw_token)
+
+    if resolved.kind == AttendanceLog.TARGET_TICKET:
+        instance = check_in_ticket(
+            resolved.instance,
+            actor=actor,
+            source=source,
+            notes=notes,
+        )
+    elif resolved.kind == AttendanceLog.TARGET_BOOKING:
+        instance = check_in_booking(
+            resolved.instance,
+            actor=actor,
+            source=source,
+            notes=notes,
+        )
+    else:
+        raise AttendanceError("Unsupported check-in target kind.")
+
+    return ResolvedCheckInToken(kind=resolved.kind, instance=instance)
+
+
 def _update_check_in_fields(
     obj: Any, *, checked_in_at: Any, checked_in_by: User | None
 ) -> None:

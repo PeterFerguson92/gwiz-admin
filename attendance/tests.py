@@ -18,6 +18,7 @@ from attendance.services import (
     InvalidCheckInToken,
     NotCheckedIn,
     check_in_booking,
+    check_in_by_token,
     check_in_ticket,
     resolve_check_in_token,
     revert_booking_check_in,
@@ -301,6 +302,74 @@ class AttendanceServicesTests(AttendanceBaseTestCase):
     def test_resolve_check_in_token_raises_when_token_not_found(self):
         with self.assertRaises(CheckInTokenNotFound):
             resolve_check_in_token(str(uuid.uuid4()))
+
+    def test_check_in_by_token_checks_in_ticket_and_returns_normalized_result(self):
+        ticket = self.create_ticket(user=self.member_user)
+
+        resolved = check_in_by_token(
+            str(ticket.check_in_token),
+            actor=self.staff_user,
+            source="qr",
+            notes="Scanner",
+        )
+
+        ticket.refresh_from_db()
+        self.assertEqual(resolved.kind, AttendanceLog.TARGET_TICKET)
+        self.assertEqual(resolved.instance.id, ticket.id)
+        self.assertIsNotNone(ticket.checked_in_at)
+        self.assertEqual(ticket.checked_in_by, self.staff_user)
+        self.assertTrue(
+            AttendanceLog.objects.filter(
+                target_type=AttendanceLog.TARGET_TICKET,
+                target_id=str(ticket.id),
+                action=AttendanceLog.ACTION_CHECKED_IN,
+                actor=self.staff_user,
+                source="qr",
+                notes="Scanner",
+            ).exists()
+        )
+
+    def test_check_in_by_token_checks_in_booking_and_returns_normalized_result(self):
+        booking = self.create_booking(user=self.member_user)
+
+        resolved = check_in_by_token(
+            str(booking.check_in_token),
+            actor=self.staff_user,
+            source="qr",
+        )
+
+        booking.refresh_from_db()
+        self.assertEqual(resolved.kind, AttendanceLog.TARGET_BOOKING)
+        self.assertEqual(resolved.instance.id, booking.id)
+        self.assertIsNotNone(booking.checked_in_at)
+        self.assertEqual(booking.checked_in_by, self.staff_user)
+        self.assertTrue(
+            AttendanceLog.objects.filter(
+                target_type=AttendanceLog.TARGET_BOOKING,
+                target_id=str(booking.id),
+                action=AttendanceLog.ACTION_CHECKED_IN,
+                actor=self.staff_user,
+                source="qr",
+            ).exists()
+        )
+
+    def test_check_in_by_token_propagates_already_checked_in(self):
+        ticket = self.create_ticket(
+            user=self.member_user,
+            checked_in_at=timezone.now(),
+        )
+
+        with self.assertRaises(AlreadyCheckedIn):
+            check_in_by_token(str(ticket.check_in_token), actor=self.staff_user)
+
+    def test_check_in_by_token_propagates_ineligible_ticket(self):
+        ticket = self.create_ticket(
+            user=self.member_user,
+            payment_status=EventTicket.PAYMENT_PENDING,
+        )
+
+        with self.assertRaises(CheckInNotAllowed):
+            check_in_by_token(str(ticket.check_in_token), actor=self.staff_user)
 
 
 class AttendanceWriteEndpointTests(AttendanceBaseTestCase):
