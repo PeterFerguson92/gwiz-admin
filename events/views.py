@@ -30,6 +30,7 @@ from . import payments
 from .email_utils import send_ticket_cancellation_email, send_ticket_confirmation_email
 from .models import Event, EventTicket
 from .serializer import (
+    EventListSerializer,
     EventSerializer,
     EventTicketSerializer,
     PurchaseRequestSerializer,
@@ -60,7 +61,7 @@ class UpcomingEventListView(generics.ListAPIView):
     Public list of active, not-sold-out events. Defaults to upcoming only.
     """
 
-    serializer_class = EventSerializer
+    serializer_class = EventListSerializer
     permission_classes = [AllowAny]
 
     def get_queryset(self):
@@ -80,7 +81,7 @@ class ActiveEventListView(generics.ListAPIView):
     Public list of all active events (no date filter).
     """
 
-    serializer_class = EventSerializer
+    serializer_class = EventListSerializer
     permission_classes = [AllowAny]
 
     def get_queryset(self):

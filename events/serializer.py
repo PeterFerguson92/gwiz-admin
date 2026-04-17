@@ -26,6 +26,27 @@ class EventSerializer(serializers.ModelSerializer):
         ]
 
 
+class EventListSerializer(serializers.ModelSerializer):
+    remaining_tickets = serializers.IntegerField(read_only=True)
+    is_sold_out = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Event
+        fields = [
+            "id",
+            "name",
+            "description",
+            "location",
+            "start_datetime",
+            "end_datetime",
+            "ticket_price",
+            "capacity",
+            "remaining_tickets",
+            "is_sold_out",
+            "is_featured",
+        ]
+
+
 class EventTicketSerializer(serializers.ModelSerializer):
     event = EventSerializer(read_only=True)
 
