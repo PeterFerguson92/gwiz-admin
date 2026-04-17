@@ -282,6 +282,11 @@ class Booking(models.Model):
         null=True,
         help_text="Stripe PaymentIntent ID for PAYG bookings.",
     )
+    check_in_token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+    )
 
     attendance_status = models.CharField(
         max_length=20,

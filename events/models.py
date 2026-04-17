@@ -162,6 +162,11 @@ class EventTicket(models.Model):
         null=True,
         help_text="Stripe PaymentIntent ID for paid tickets.",
     )
+    check_in_token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+    )
     checked_in_at = models.DateTimeField(
         null=True,
         blank=True,
