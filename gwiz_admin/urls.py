@@ -29,6 +29,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/homepage/", include("homepage.urls")),
     path("api/auth/", include("accounts.urls")),
+    path("api/staff/", include("attendance.urls")),
     path("api/booking/", include("booking.urls")),
     path("api/events/", include("events.urls")),
     # Raw OpenAPI schema

@@ -464,6 +464,115 @@ class AttendanceWriteEndpointTests(AttendanceBaseTestCase):
             ).exists()
         )
 
+    def test_check_in_by_token_endpoint_checks_in_ticket_for_staff(self):
+        ticket = self.create_ticket(user=self.member_user)
+        self.authenticate_staff()
+
+        response = self.api_client.post(
+            "/api/staff/check-in/by-token/",
+            {"token": str(ticket.check_in_token), "source": "qr", "notes": "Scanner"},
+            format="json",
+        )
+
+        ticket.refresh_from_db()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["kind"], AttendanceLog.TARGET_TICKET)
+        self.assertEqual(response.data["id"], str(ticket.id))
+        self.assertIsNotNone(response.data["checked_in_at"])
+        self.assertIsNotNone(ticket.checked_in_at)
+        self.assertEqual(ticket.checked_in_by, self.staff_user)
+
+    def test_check_in_by_token_endpoint_checks_in_booking_for_staff(self):
+        booking = self.create_booking(user=self.member_user)
+        self.authenticate_staff()
+
+        response = self.api_client.post(
+            "/api/staff/check-in/by-token/",
+            {"token": str(booking.check_in_token)},
+            format="json",
+        )
+
+        booking.refresh_from_db()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["kind"], AttendanceLog.TARGET_BOOKING)
+        self.assertEqual(response.data["id"], str(booking.id))
+        self.assertIsNotNone(response.data["checked_in_at"])
+        self.assertEqual(booking.checked_in_by, self.staff_user)
+        self.assertTrue(
+            AttendanceLog.objects.filter(
+                target_type=AttendanceLog.TARGET_BOOKING,
+                target_id=str(booking.id),
+                action=AttendanceLog.ACTION_CHECKED_IN,
+                actor=self.staff_user,
+            ).exists()
+        )
+
+    def test_check_in_by_token_endpoint_requires_staff(self):
+        ticket = self.create_ticket(user=self.member_user)
+        self.authenticate_non_staff()
+
+        response = self.api_client.post(
+            "/api/staff/check-in/by-token/",
+            {"token": str(ticket.check_in_token)},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_check_in_by_token_endpoint_returns_400_for_malformed_token(self):
+        self.authenticate_staff()
+
+        response = self.api_client.post(
+            "/api/staff/check-in/by-token/",
+            {"token": "not-a-uuid"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("token", response.data)
+
+    def test_check_in_by_token_endpoint_returns_404_for_unknown_token(self):
+        self.authenticate_staff()
+
+        response = self.api_client.post(
+            "/api/staff/check-in/by-token/",
+            {"token": str(uuid.uuid4())},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data, {"detail": "Check-in token not found."})
+
+    def test_check_in_by_token_endpoint_returns_409_for_already_checked_in(self):
+        ticket = self.create_ticket(
+            user=self.member_user,
+            checked_in_at=timezone.now(),
+        )
+        self.authenticate_staff()
+
+        response = self.api_client.post(
+            "/api/staff/check-in/by-token/",
+            {"token": str(ticket.check_in_token)},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+    def test_check_in_by_token_endpoint_returns_403_for_ineligible_token(self):
+        booking = self.create_booking(
+            user=self.member_user,
+            payment_status=Booking.PAYMENT_PENDING,
+        )
+        self.authenticate_staff()
+
+        response = self.api_client.post(
+            "/api/staff/check-in/by-token/",
+            {"token": str(booking.check_in_token)},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
 
 class AttendanceReadEndpointTests(AttendanceBaseTestCase):
     def test_event_attendee_list_is_staff_only_and_paginated(self):
