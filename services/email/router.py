@@ -108,13 +108,15 @@ def send_booking_email_via_provider(
     sender_name: str | None = None,
     brevo_template_id: int | None = None,
     brevo_params: dict | None = None,
+    attachments: list[dict] | None = None,
 ) -> bool:
     provider = _resolve_provider("EMAIL_PROVIDER_BOOKING")
     logger.info(
-        "Email provider selected for booking flow: %s | to=%s | template_id=%s",
+        "Email provider selected for booking flow: %s | to=%s | template_id=%s | attachments=%s",
         provider,
         recipient_email,
         brevo_template_id,
+        len(attachments or []),
     )
 
     if provider == "sendgrid":
@@ -145,6 +147,7 @@ def send_booking_email_via_provider(
                 subject=subject,
                 sender_email=sender_addr,
                 sender_name=sender_label,
+                attachments=attachments,
             )
             logger.info(
                 "Brevo booking email accepted for %s (message_id=%s)",

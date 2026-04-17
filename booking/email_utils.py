@@ -1,12 +1,57 @@
+import base64
 import logging
+from io import BytesIO
 
 from django.conf import settings
-from sendgrid.helpers.mail import Mail
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from sendgrid.helpers.mail import (
+    Attachment,
+    Disposition,
+    FileContent,
+    FileName,
+    FileType,
+    Mail,
+)
 
 from notifications.email import _format_from_email, _get_sendgrid_client
 from services.email.router import send_booking_email_via_provider
 
 logger = logging.getLogger(__name__)
+
+
+def build_booking_pdf(booking) -> bytes:
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=A4)
+    width, height = A4
+
+    session = booking.class_session
+    fitness_class = session.fitness_class
+    user_email = booking.guest_email or getattr(booking.user, "email", "")
+
+    lines = [
+        f"Booking for: {fitness_class.name}",
+        f"Date: {session.date.isoformat()}",
+        f"Time: {session.start_time.strftime('%H:%M')} - {session.end_time.strftime('%H:%M')}",
+        f"Booking ID: {booking.id}",
+        f"Session ID: {session.id}",
+        f"Class ID: {fitness_class.id}",
+        f"User: {user_email}",
+        f"Status: {booking.status} / {booking.payment_status}",
+    ]
+
+    y = height - 72
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(72, y, "Class Booking")
+    y -= 24
+    c.setFont("Helvetica", 12)
+    for line in lines:
+        c.drawString(72, y, line)
+        y -= 18
+
+    c.showPage()
+    c.save()
+    return buf.getvalue()
 
 
 def send_booking_confirmation_email(booking, cancel_token: str | None = None) -> bool:
@@ -66,6 +111,7 @@ def send_booking_confirmation_email(booking, cancel_token: str | None = None) ->
         booking.id,
         to_email,
     )
+    pdf_bytes = build_booking_pdf(booking)
 
     html_message = f"""
     <html>
@@ -87,6 +133,14 @@ def send_booking_confirmation_email(booking, cancel_token: str | None = None) ->
             logger.error("SendGrid booking template not configured; skipping email.")
             return False
 
+        encoded_pdf = base64.b64encode(pdf_bytes).decode()
+        attachment = Attachment(
+            FileContent(encoded_pdf),
+            FileName(f"booking-{booking.id}.pdf"),
+            FileType("application/pdf"),
+            Disposition("attachment"),
+        )
+
         message = Mail(
             from_email=_format_from_email(),
             to_emails=to_email,
@@ -96,12 +150,14 @@ def send_booking_confirmation_email(booking, cancel_token: str | None = None) ->
         message.dynamic_template_data = data
         if message.personalizations:
             message.personalizations[0].subject = subject
+        message.attachment = attachment
 
         logger.info(
-            "Sending booking email via SendGrid | booking=%s | to=%s | data=%s",
+            "Sending booking email via SendGrid | booking=%s | to=%s | data=%s | pdf_bytes=%s",
             booking.id,
             to_email,
             data,
+            len(pdf_bytes),
         )
 
         try:
@@ -129,6 +185,12 @@ def send_booking_confirmation_email(booking, cancel_token: str | None = None) ->
         sender_email=_format_from_email(),
         brevo_template_id=int(brevo_template_id) if brevo_template_id else None,
         brevo_params=data,
+        attachments=[
+            {
+                "name": f"booking-{booking.id}.pdf",
+                "content": pdf_bytes,
+            }
+        ],
     )
 
 
