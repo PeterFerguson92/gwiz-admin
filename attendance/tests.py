@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -13,9 +14,12 @@ from attendance.rules import can_check_in_booking, can_check_in_ticket
 from attendance.services import (
     AlreadyCheckedIn,
     CheckInNotAllowed,
+    CheckInTokenNotFound,
+    InvalidCheckInToken,
     NotCheckedIn,
     check_in_booking,
     check_in_ticket,
+    resolve_check_in_token,
     revert_booking_check_in,
     revert_ticket_check_in,
 )
@@ -273,6 +277,30 @@ class AttendanceServicesTests(AttendanceBaseTestCase):
 
         with self.assertRaises(NotCheckedIn):
             revert_ticket_check_in(ticket, actor=self.staff_user)
+
+    def test_resolve_check_in_token_returns_ticket_result(self):
+        ticket = self.create_ticket(user=self.member_user)
+
+        resolved = resolve_check_in_token(str(ticket.check_in_token))
+
+        self.assertEqual(resolved.kind, AttendanceLog.TARGET_TICKET)
+        self.assertEqual(resolved.instance.id, ticket.id)
+
+    def test_resolve_check_in_token_returns_booking_result(self):
+        booking = self.create_booking(user=self.member_user)
+
+        resolved = resolve_check_in_token(str(booking.check_in_token))
+
+        self.assertEqual(resolved.kind, AttendanceLog.TARGET_BOOKING)
+        self.assertEqual(resolved.instance.id, booking.id)
+
+    def test_resolve_check_in_token_rejects_invalid_uuid(self):
+        with self.assertRaises(InvalidCheckInToken):
+            resolve_check_in_token("not-a-uuid")
+
+    def test_resolve_check_in_token_raises_when_token_not_found(self):
+        with self.assertRaises(CheckInTokenNotFound):
+            resolve_check_in_token(str(uuid.uuid4()))
 
 
 class AttendanceWriteEndpointTests(AttendanceBaseTestCase):

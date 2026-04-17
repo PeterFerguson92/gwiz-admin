@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+from dataclasses import dataclass
 from typing import Any
 
 from django.contrib.auth import get_user_model
@@ -8,6 +10,8 @@ from django.utils import timezone
 
 from attendance.models import AttendanceLog
 from attendance.rules import can_check_in_booking, can_check_in_ticket
+from booking.models import Booking
+from events.models import EventTicket
 
 User = get_user_model()
 
@@ -26,6 +30,37 @@ class AlreadyCheckedIn(AttendanceError):
 
 class NotCheckedIn(AttendanceError):
     pass
+
+
+class InvalidCheckInToken(AttendanceError):
+    pass
+
+
+class CheckInTokenNotFound(AttendanceError):
+    pass
+
+
+@dataclass(frozen=True)
+class ResolvedCheckInToken:
+    kind: str
+    instance: Any
+
+
+def resolve_check_in_token(raw_token: str) -> ResolvedCheckInToken:
+    try:
+        token = uuid.UUID(str(raw_token))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise InvalidCheckInToken("Invalid check-in token format.") from exc
+
+    ticket = EventTicket.objects.filter(check_in_token=token).first()
+    if ticket is not None:
+        return ResolvedCheckInToken(kind=AttendanceLog.TARGET_TICKET, instance=ticket)
+
+    booking = Booking.objects.filter(check_in_token=token).first()
+    if booking is not None:
+        return ResolvedCheckInToken(kind=AttendanceLog.TARGET_BOOKING, instance=booking)
+
+    raise CheckInTokenNotFound("Check-in token not found.")
 
 
 def _update_check_in_fields(
