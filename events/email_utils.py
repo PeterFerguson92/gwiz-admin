@@ -16,6 +16,7 @@ from sendgrid.helpers.mail import (
     Mail,
 )
 
+from attendance.qr import build_check_in_qr_context, draw_check_in_qr
 from notifications.email import _format_from_email, _get_sendgrid_client
 from services.email.router import send_event_email_via_provider
 
@@ -46,32 +47,44 @@ def build_ticket_pdf(ticket) -> bytes:
 
     event = ticket.event
     user_email = getattr(ticket.user, "email", "")
+    qr_context = build_check_in_qr_context(ticket.check_in_token)
 
     start_dt = _format_dt(event.start_datetime)
     end_dt = _format_dt(event.end_datetime)
 
-    lines = [
-        f"Ticket for: {event.name}",
-        f"Location: {event.location}",
-        f"Starts: {start_dt}",
-        f"Ends: {end_dt}" if end_dt else "",
-        f"Quantity: {ticket.quantity}",
-        f"Ticket ID: {ticket.id}",
-        f"Event ID: {event.id}",
-        f"User: {user_email}",
-        f"Status: {ticket.status} / {ticket.payment_status}",
-    ]
+    context = {
+        "title": "Event Ticket",
+        "lines": [
+            f"Ticket for: {event.name}",
+            f"Location: {event.location}",
+            f"Starts: {start_dt}",
+            f"Ends: {end_dt}" if end_dt else "",
+            f"Quantity: {ticket.quantity}",
+            f"Ticket ID: {ticket.id}",
+            f"Event ID: {event.id}",
+            f"User: {user_email}",
+            f"Status: {ticket.status} / {ticket.payment_status}",
+        ],
+        **qr_context,
+    }
 
+    qr_size = 132
+    qr_x = width - 72 - qr_size
+    qr_y = height - 72 - qr_size
     y = height - 72
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(72, y, "Event Ticket")
+    c.drawString(72, y, context["title"])
     y -= 24
     c.setFont("Helvetica", 12)
-    for line in lines:
+    for line in context["lines"]:
         if not line:
             continue
         c.drawString(72, y, line)
         y -= 18
+
+    draw_check_in_qr(c, ticket.check_in_token, x=qr_x, y=qr_y, size=qr_size)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(qr_x, qr_y - 14, "Scan for check-in")
 
     c.showPage()
     c.save()

@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from attendance.models import AttendanceLog
+from attendance.qr import build_check_in_qr_data_url, build_check_in_url
 from attendance.rules import can_check_in_booking, can_check_in_ticket
 from attendance.services import (
     AlreadyCheckedIn,
@@ -24,7 +25,9 @@ from attendance.services import (
     revert_booking_check_in,
     revert_ticket_check_in,
 )
+from booking.email_utils import build_booking_pdf
 from booking.models import Booking, ClassSession, FitnessClass
+from events.email_utils import build_ticket_pdf
 from events.models import Event, EventTicket
 
 
@@ -209,6 +212,34 @@ class AttendanceRulesTests(AttendanceBaseTestCase):
 
         self.assertFalse(allowed)
         self.assertEqual(reason, "Booking is cancelled.")
+
+
+class AttendanceQrTests(AttendanceBaseTestCase):
+    def test_check_in_qr_payload_generation_uses_token_url(self):
+        ticket = self.create_ticket(user=self.member_user)
+
+        url = build_check_in_url(ticket.check_in_token)
+        data_url = build_check_in_qr_data_url(ticket.check_in_token)
+
+        self.assertIn("/staff/check-in?token=", url)
+        self.assertIn(str(ticket.check_in_token), url)
+        self.assertTrue(data_url.startswith("data:image/svg+xml;base64,"))
+
+    def test_ticket_pdf_generation_succeeds_with_qr(self):
+        ticket = self.create_ticket(user=self.member_user)
+
+        pdf_bytes = build_ticket_pdf(ticket)
+
+        self.assertTrue(pdf_bytes.startswith(b"%PDF"))
+        self.assertGreater(len(pdf_bytes), 1000)
+
+    def test_booking_pdf_generation_succeeds_with_qr(self):
+        booking = self.create_booking(user=self.member_user)
+
+        pdf_bytes = build_booking_pdf(booking)
+
+        self.assertTrue(pdf_bytes.startswith(b"%PDF"))
+        self.assertGreater(len(pdf_bytes), 1000)
 
 
 class AttendanceServicesTests(AttendanceBaseTestCase):
