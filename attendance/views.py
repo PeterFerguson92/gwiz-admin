@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from attendance.serializers import (
     CheckInByTokenResponseSerializer,
     CheckInByTokenSerializer,
+    get_attendance_display_name,
 )
 from attendance.services import (
     AlreadyCheckedIn,
@@ -54,6 +55,7 @@ class CheckInByTokenView(APIView):
             {
                 "kind": resolved.kind,
                 "id": resolved.instance.id,
+                "display_name": get_attendance_display_name(resolved.instance),
                 "checked_in_at": resolved.instance.checked_in_at,
             }
         )

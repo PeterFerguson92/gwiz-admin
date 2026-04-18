@@ -509,12 +509,15 @@ class AttendanceWriteEndpointTests(AttendanceBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["kind"], AttendanceLog.TARGET_TICKET)
         self.assertEqual(response.data["id"], str(ticket.id))
+        self.assertEqual(response.data["display_name"], self.member_user.email)
         self.assertIsNotNone(response.data["checked_in_at"])
         self.assertIsNotNone(ticket.checked_in_at)
         self.assertEqual(ticket.checked_in_by, self.staff_user)
 
     def test_check_in_by_token_endpoint_checks_in_booking_for_staff(self):
-        booking = self.create_booking(user=self.member_user)
+        booking = self.create_booking(
+            user=None, guest_email="guest-booking@example.com"
+        )
         self.authenticate_staff()
 
         response = self.api_client.post(
@@ -527,6 +530,7 @@ class AttendanceWriteEndpointTests(AttendanceBaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["kind"], AttendanceLog.TARGET_BOOKING)
         self.assertEqual(response.data["id"], str(booking.id))
+        self.assertEqual(response.data["display_name"], "Guest: Guest Booker")
         self.assertIsNotNone(response.data["checked_in_at"])
         self.assertEqual(booking.checked_in_by, self.staff_user)
         self.assertTrue(
