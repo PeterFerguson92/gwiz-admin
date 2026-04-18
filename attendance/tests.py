@@ -25,9 +25,9 @@ from attendance.services import (
     revert_booking_check_in,
     revert_ticket_check_in,
 )
-from booking.email_utils import build_booking_pdf
+from booking.email_utils import build_booking_pdf, build_booking_pdf_lines
 from booking.models import Booking, ClassSession, FitnessClass
-from events.email_utils import build_ticket_pdf
+from events.email_utils import build_ticket_pdf, build_ticket_pdf_lines
 from events.models import Event, EventTicket
 
 
@@ -226,20 +226,25 @@ class AttendanceQrTests(AttendanceBaseTestCase):
         self.assertTrue(data_url.startswith("data:image/svg+xml;base64,"))
 
     def test_ticket_pdf_generation_succeeds_with_qr(self):
+        self.member_user.first_name = "Jane"
+        self.member_user.last_name = "Doe"
+        self.member_user.save(update_fields=["first_name", "last_name"])
         ticket = self.create_ticket(user=self.member_user)
 
         pdf_bytes = build_ticket_pdf(ticket)
 
         self.assertTrue(pdf_bytes.startswith(b"%PDF"))
         self.assertGreater(len(pdf_bytes), 1000)
+        self.assertIn("Name: Jane Doe", build_ticket_pdf_lines(ticket))
 
     def test_booking_pdf_generation_succeeds_with_qr(self):
-        booking = self.create_booking(user=self.member_user)
+        booking = self.create_booking(user=None, guest_email="guest@example.com")
 
         pdf_bytes = build_booking_pdf(booking)
 
         self.assertTrue(pdf_bytes.startswith(b"%PDF"))
         self.assertGreater(len(pdf_bytes), 1000)
+        self.assertIn("Name: Guest: Guest Booker", build_booking_pdf_lines(booking))
 
 
 class AttendanceServicesTests(AttendanceBaseTestCase):

@@ -16,6 +16,7 @@ from sendgrid.helpers.mail import (
     Mail,
 )
 
+from attendance.display import get_attendance_display_name
 from attendance.qr import build_check_in_qr_context, draw_check_in_qr
 from notifications.email import _format_from_email, _get_sendgrid_client
 from services.email.router import send_event_email_via_provider
@@ -37,6 +38,27 @@ def _format_dt(dt):
     return f"{formatted} {tz_label}".strip()
 
 
+def build_ticket_pdf_lines(ticket) -> list[str]:
+    event = ticket.event
+    attendee_name = get_attendance_display_name(ticket)
+    user_email = getattr(ticket.user, "email", "") or getattr(ticket, "guest_email", "")
+    start_dt = _format_dt(event.start_datetime)
+    end_dt = _format_dt(event.end_datetime)
+
+    return [
+        f"Ticket for: {event.name}",
+        f"Location: {event.location}",
+        f"Starts: {start_dt}",
+        f"Ends: {end_dt}" if end_dt else "",
+        f"Quantity: {ticket.quantity}",
+        f"Ticket ID: {ticket.id}",
+        f"Event ID: {event.id}",
+        f"Name: {attendee_name}",
+        f"User: {user_email}",
+        f"Status: {ticket.status} / {ticket.payment_status}",
+    ]
+
+
 def build_ticket_pdf(ticket) -> bytes:
     """
     Generate a simple PDF ticket for the given EventTicket.
@@ -45,26 +67,11 @@ def build_ticket_pdf(ticket) -> bytes:
     c = canvas.Canvas(buf, pagesize=A4)
     width, height = A4
 
-    event = ticket.event
-    user_email = getattr(ticket.user, "email", "")
     qr_context = build_check_in_qr_context(ticket.check_in_token)
-
-    start_dt = _format_dt(event.start_datetime)
-    end_dt = _format_dt(event.end_datetime)
 
     context = {
         "title": "Event Ticket",
-        "lines": [
-            f"Ticket for: {event.name}",
-            f"Location: {event.location}",
-            f"Starts: {start_dt}",
-            f"Ends: {end_dt}" if end_dt else "",
-            f"Quantity: {ticket.quantity}",
-            f"Ticket ID: {ticket.id}",
-            f"Event ID: {event.id}",
-            f"User: {user_email}",
-            f"Status: {ticket.status} / {ticket.payment_status}",
-        ],
+        "lines": build_ticket_pdf_lines(ticket),
         **qr_context,
     }
 

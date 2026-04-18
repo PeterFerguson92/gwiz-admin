@@ -14,6 +14,7 @@ from sendgrid.helpers.mail import (
     Mail,
 )
 
+from attendance.display import get_attendance_display_name
 from attendance.qr import build_check_in_qr_context, draw_check_in_qr
 from notifications.email import _format_from_email, _get_sendgrid_client
 from services.email.router import send_booking_email_via_provider
@@ -21,28 +22,35 @@ from services.email.router import send_booking_email_via_provider
 logger = logging.getLogger(__name__)
 
 
+def build_booking_pdf_lines(booking) -> list[str]:
+    session = booking.class_session
+    fitness_class = session.fitness_class
+    attendee_name = get_attendance_display_name(booking)
+    user_email = booking.guest_email or getattr(booking.user, "email", "")
+
+    return [
+        f"Booking for: {fitness_class.name}",
+        f"Date: {session.date.isoformat()}",
+        f"Time: {session.start_time.strftime('%H:%M')} - {session.end_time.strftime('%H:%M')}",
+        f"Booking ID: {booking.id}",
+        f"Session ID: {session.id}",
+        f"Class ID: {fitness_class.id}",
+        f"Name: {attendee_name}",
+        f"User: {user_email}",
+        f"Status: {booking.status} / {booking.payment_status}",
+    ]
+
+
 def build_booking_pdf(booking) -> bytes:
     buf = BytesIO()
     c = canvas.Canvas(buf, pagesize=A4)
     width, height = A4
 
-    session = booking.class_session
-    fitness_class = session.fitness_class
-    user_email = booking.guest_email or getattr(booking.user, "email", "")
     qr_context = build_check_in_qr_context(booking.check_in_token)
 
     context = {
         "title": "Class Booking",
-        "lines": [
-            f"Booking for: {fitness_class.name}",
-            f"Date: {session.date.isoformat()}",
-            f"Time: {session.start_time.strftime('%H:%M')} - {session.end_time.strftime('%H:%M')}",
-            f"Booking ID: {booking.id}",
-            f"Session ID: {session.id}",
-            f"Class ID: {fitness_class.id}",
-            f"User: {user_email}",
-            f"Status: {booking.status} / {booking.payment_status}",
-        ],
+        "lines": build_booking_pdf_lines(booking),
         **qr_context,
     }
 

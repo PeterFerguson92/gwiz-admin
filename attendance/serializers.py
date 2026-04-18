@@ -1,25 +1,8 @@
 from rest_framework import serializers
 
+from attendance.display import get_attendance_display_name
 from booking.models import Booking
 from events.models import EventTicket
-
-
-def get_attendance_display_name(obj) -> str:
-    user = getattr(obj, "user", None)
-    if user:
-        return (
-            user.get_full_name() or getattr(user, "full_name", "") or user.email or "—"
-        )
-
-    guest_name = getattr(obj, "guest_name", "") or ""
-    if guest_name:
-        return f"Guest: {guest_name}"
-
-    guest_email = getattr(obj, "guest_email", "") or ""
-    if guest_email:
-        return f"Guest: {guest_email}"
-
-    return "Guest"
 
 
 class TicketAttendanceSerializer(serializers.ModelSerializer):
