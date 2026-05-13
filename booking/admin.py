@@ -219,7 +219,7 @@ class RecurrenceRuleAdmin(ModelAdmin):
         """
         rule = get_object_or_404(RecurrenceRule, pk=object_id)
         from_date = date.today()
-        to_date = from_date + timedelta(days=90)
+        to_date = rule.end_date or (from_date + timedelta(days=90))
 
         preview_create, preview_skip = preview_sessions_for_rule(
             rule, from_date, to_date
