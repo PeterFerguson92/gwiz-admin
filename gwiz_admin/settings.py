@@ -7,6 +7,26 @@ from django.urls import reverse_lazy
 
 env = environ.Env()
 
+
+def _clean_env_list(value):
+    if not value:
+        return []
+
+    if isinstance(value, str):
+        items = value.split(",")
+    else:
+        items = value
+
+    cleaned = []
+    for item in items:
+        if item is None:
+            continue
+        normalized = str(item).strip().strip("'\"").rstrip("/")
+        if normalized:
+            cleaned.append(normalized)
+    return cleaned
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,8 +45,16 @@ DEBUG = env("ENABLE_DEBUG") == "True"
 
 ALLOWED_HOSTS = ["localhost"]
 if not IS_DEV:
-    ALLOWED_HOSTS.extend(env.list("ALLOW_HOSTS", default=[]))
-    CSRF_TRUSTED_ORIGINS = [env("CSRF_TRUSTED_ORIGIN")]
+    allowed_hosts = _clean_env_list(
+        env("ALLOW_HOSTS", default=env("ALLOWED_HOST", default=""))
+    )
+    ALLOWED_HOSTS.extend(allowed_hosts)
+    CSRF_TRUSTED_ORIGINS = _clean_env_list(
+        env(
+            "CSRF_TRUSTED_ORIGINS",
+            default=env("CSRF_TRUSTED_ORIGIN", default=""),
+        )
+    )
 
 # Application definition
 INSTALLED_APPS = [
@@ -155,7 +183,11 @@ DATE_FORMAT = "d-m-Y"
 DATE_INPUT_FORMATS = ["%d-%m-%Y"]
 X_FRAME_OPTIONS = "SAMEORIGIN"
 XS_SHARING_ALLOWED_METHODS = ["POST", "GET", "OPTIONS", "PUT", "DELETE"]
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
+CORS_ALLOWED_ORIGINS = _clean_env_list(env("CORS_ALLOWED_ORIGINS", default=""))
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost(:\d+)?$",
+    r"^http://127\.0\.0\.1(:\d+)?$",
+]
 
 
 ADMIN_STATIC_BASE = f"{STATIC_URL}admin/"
